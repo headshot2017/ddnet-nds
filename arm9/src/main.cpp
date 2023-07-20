@@ -33,6 +33,8 @@ int main(int argc, const char **argv)
 	pClient->RegisterInterfaces();
 
 	IEngine *pEngine = CreateEngine("Teeworlds");
+	pKernel->RegisterInterface(pEngine);
+
 	pEngine->Init();
 	pClient->InitInterfaces();
 
