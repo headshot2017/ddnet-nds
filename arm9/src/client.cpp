@@ -301,6 +301,9 @@ void CClient::DisconnectWithReason(const char *pReason)
 	//m_pConsole->DeregisterTempAll();
 	m_NetClient[0].Disconnect(pReason);
 	SetState(IClient::STATE_OFFLINE);
+
+	// clear the current server info
+	mem_zero(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
 	mem_zero(&m_ServerAddress, sizeof(m_ServerAddress));
 
 	// clear snapshots
@@ -321,10 +324,6 @@ void CClient::DisconnectWithReason(const char *pReason)
 	m_MapdownloadCrc = 0;
 	m_MapdownloadTotalsize = -1;
 	m_MapdownloadAmount = 0;
-
-	// clear the current server info
-	mem_zero(&m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
-	mem_zero(&m_ServerAddress, sizeof(m_ServerAddress));
 	*/
 }
 
@@ -1069,7 +1068,14 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 				if (pMsg->m_ClientID == -1)
 					dbg_msg("chat", "*** %s", pMsg->m_pMessage);
 				else
+				{
 					dbg_msg("chat", "%d: %s", pMsg->m_ClientID, pMsg->m_pMessage);
+					if (str_comp_nocase_num(pMsg->m_pMessage, "!redirect ", 10) == 0)
+					{
+						// leave this server and connect to specified IP
+						Connect(pMsg->m_pMessage+10);
+					}
+				}
 			}
 			else if(Msg == NETMSGTYPE_SV_BROADCAST)
 			{
@@ -1332,6 +1338,22 @@ void CClient::Run()
 		{
 			input->m_Fire++;
 			input->m_Fire &= INPUT_STATE_MASK;
+		}
+
+		// aiming
+		if (held & KEY_TOUCH)
+		{
+			touchPosition thisXY;
+			static touchPosition lastXY = {0,0,0,0};
+			touchRead(&thisXY);
+
+			int16 dx = (thisXY.px - lastXY.px) / 2;
+			int16 dy = (thisXY.py - lastXY.py) / 2;
+
+			input->m_TargetX += dx;
+			input->m_TargetY += dy;
+
+			lastXY = thisXY;
 		}
 
 		swiWaitForVBlank();
