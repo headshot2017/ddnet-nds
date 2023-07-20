@@ -1,0 +1,6 @@
+build
+*.lnk
+*.elf
+*.nds
+*.o
+*.d
