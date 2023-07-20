@@ -924,10 +924,6 @@ int net_host_lookup(const char *hostname, NETADDR *addr, int types)
 	mem_zero(addr, sizeof(NETADDR));
 	net_addr_from_str(addr, host);
 	addr->port = port;
-	
-	char ipmsg[128];
-	net_addr_str(addr, ipmsg, 128, 1);
-	dbg_msg("a", "send! %s", ipmsg);
 #endif
 
 	return 0;
