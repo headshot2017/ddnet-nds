@@ -1237,7 +1237,7 @@ void CClient::Update()
 
 			if(NewPredTick < m_aSnapshots[0][SNAP_PREV]->m_Tick-SERVER_TICK_SPEED || NewPredTick > m_aSnapshots[0][SNAP_PREV]->m_Tick+SERVER_TICK_SPEED)
 			{
-				//dbg_msg("client", "prediction time reset!");
+				dbg_msg("client", "prediction time reset!");
 				m_PredictedTime.Init(m_aSnapshots[0][SNAP_CURRENT]->m_Tick*time_freq()/50);
 			}
 
