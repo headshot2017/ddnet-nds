@@ -1,5 +1,4 @@
-#include "protocol.h"
-#include "message.h"
+#include <engine/shared/protocol.h>
 #include "generated_protocol.h"
 CNetObjHandler::CNetObjHandler()
 {

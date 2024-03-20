@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #endif
 
-#include "client.h"
+#include <engine/client/client.h>
 #include "main.h"
 
 char m_DesiredName[MAX_NAME_LENGTH];
@@ -65,7 +65,7 @@ int main(int argc, const char **argv)
 #endif
 
 #ifdef ARM9
-	str_copy(pClient->m_aCmdConnect, "192.223.30.85:8306", sizeof(pClient->m_aCmdConnect));
+	str_copy(pClient->m_aCmdConnect, "5.78.73.17:8300", sizeof(pClient->m_aCmdConnect));
 	str_copy(m_DesiredName, "libnds", MAX_NAME_LENGTH);
 	str_copy(m_DesiredClan, "devkitARM", MAX_CLAN_LENGTH);
 	pClient->Run();

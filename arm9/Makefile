@@ -16,8 +16,8 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 #TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	src
-INCLUDES	:=	include
+SOURCES		:=	src src/base src/engine/client src/engine/shared
+INCLUDES	:=	src
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -38,7 +38,7 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:= -lfat -lmm9 -ldswifi9 -lnds9 -lz
+LIBS	:= -lfat -ldswifi9 -lnds9 -lz
  
  
 #---------------------------------------------------------------------------------
