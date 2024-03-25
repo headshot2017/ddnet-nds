@@ -9,6 +9,7 @@ include $(DEVKITARM)/ds_rules
 
 export TARGET		:=	$(shell basename $(CURDIR))
 export TOPDIR		:=	$(CURDIR)
+GENERATED	:=	arm9/build/game/generated
 
 
 .PHONY: arm7/$(TARGET).elf arm9/$(TARGET).elf
@@ -37,7 +38,7 @@ arm7/$(TARGET).elf:
 	@$(MAKE) -C arm7
 
 #---------------------------------------------------------------------------------
-arm9/$(TARGET).elf:
+arm9/$(TARGET).elf: $(GENERATED)
 	@echo Compiling ARM9
 	@$(MAKE) -C arm9
 
@@ -46,5 +47,13 @@ clean:
 	@$(MAKE) -C arm9 clean
 	@$(MAKE) -C arm7 clean
 	@rm -f $(TARGET).nds arm7/$(TARGET).elf arm9/$(TARGET).elf
+
+#---------------------------------------------------------------------------------
+$(GENERATED):
+	@[ -d $@ ] || mkdir -p $@
+	python datasrc/compile.py network_source > $(GENERATED)/protocol.cpp
+	python datasrc/compile.py network_header > $(GENERATED)/protocol.h
+	python datasrc/compile.py client_content_source > $(GENERATED)/client_data.cpp
+	python datasrc/compile.py client_content_header > $(GENERATED)/client_data.h
 
 target: $(TARGET).nds

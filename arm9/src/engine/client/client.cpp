@@ -1,5 +1,5 @@
 #include "client.h"
-#include <generated_protocol.h>
+#include <game/generated/protocol.h>
 #include <engine/shared/compression.h>
 #include <mastersrv/mastersrv.h>
 #include <main.h>

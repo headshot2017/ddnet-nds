@@ -4,3 +4,4 @@ build
 *.nds
 *.o
 *.d
+*.pyc

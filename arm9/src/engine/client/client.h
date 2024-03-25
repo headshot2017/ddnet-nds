@@ -5,7 +5,7 @@
 #include <engine/shared/network.h>
 #include <engine/shared/snapshot.h>
 #include <engine/client/serverbrowser.h>
-#include <generated_protocol.h>
+#include <game/generated/protocol.h>
 
 class CSmoothTime
 {
@@ -30,6 +30,7 @@ class CClient : public IClient
 {
 	// needed interfaces
 	IEngine *m_pEngine;
+	//IGameClient *m_pGameClient;
 
 	enum
 	{

@@ -16,8 +16,8 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 #TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	src src/base src/engine/client src/engine/shared
-INCLUDES	:=	src
+SOURCES		:=	src src/base src/engine/client src/engine/shared src/game build/game/generated
+INCLUDES	:=	src build
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -89,7 +89,8 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
  
 .PHONY: $(BUILD) clean
- 
+
+
 #---------------------------------------------------------------------------------
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@

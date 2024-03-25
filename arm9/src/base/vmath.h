@@ -4,6 +4,7 @@
 #define BASE_VMATH_H
 
 #include "math.h"
+#include <math.h>
 
 // ------------------------------------
 
