@@ -8,6 +8,29 @@
 #endif
 
 #include <engine/client/client.h>
+#include <engine/config.h>
+#include <engine/console.h>
+#include <engine/engine.h>
+#include <engine/storage.h>
+
+#include <engine/shared/config.h>
+#include <engine/shared/compression.h>
+#include <engine/shared/datafile.h>
+#include <engine/shared/demo.h>
+#include <engine/shared/filecollection.h>
+#include <engine/shared/mapchecker.h>
+#include <engine/shared/network.h>
+#include <engine/shared/packer.h>
+#include <engine/shared/protocol.h>
+#include <engine/shared/ringbuffer.h>
+#include <engine/shared/snapshot.h>
+#include <engine/shared/fifoconsole.h>
+
+//#include <game/version.h>
+
+#include <mastersrv/mastersrv.h>
+#include <versionsrv/versionsrv.h>
+
 #include "main.h"
 
 char m_DesiredName[MAX_NAME_LENGTH];
@@ -33,9 +56,24 @@ int main(int argc, const char **argv)
 	pClient->RegisterInterfaces();
 
 	IEngine *pEngine = CreateEngine("Teeworlds");
+	IConsole *pConsole = CreateConsole(CFGFLAG_CLIENT);
+	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_CLIENT, argc, argv); // ignore_convention
+	IConfig *pConfig = CreateConfig();
+
 	pKernel->RegisterInterface(pEngine);
+	pKernel->RegisterInterface(pConsole);
+	pKernel->RegisterInterface(pConfig);
+	pKernel->RegisterInterface(pStorage);
 
 	pEngine->Init();
+	pConfig->Init();
+
+	// register all console commands
+	//pClient->RegisterCommands();
+
+	//pKernel->RequestInterface<IGameClient>()->OnConsoleInit();
+
+	// init client's interfaces
 	pClient->InitInterfaces();
 
 #ifdef ARM9

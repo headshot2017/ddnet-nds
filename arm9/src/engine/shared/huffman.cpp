@@ -1,8 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
-#include <engine/shared/huffman.h>
-#include <stdio.h>
+#include "huffman.h"
 
 struct CHuffmanConstructNode
 {

@@ -4,7 +4,7 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/network.h>
 #include <engine/shared/snapshot.h>
-#include <engine/client/serverbrowser.h>
+#include <engine/serverbrowser.h>
 #include <game/generated/protocol.h>
 
 class CSmoothTime

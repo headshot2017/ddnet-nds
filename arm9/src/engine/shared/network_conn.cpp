@@ -1,7 +1,8 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <base/system.h>
-#include <engine/shared/network.h>
+#include "config.h"
+#include "network.h"
 
 SECURITY_TOKEN ToSecurityToken(unsigned char* pData)
 {
@@ -225,7 +226,7 @@ void CNetConnection::DirectInit(NETADDR &Addr, SECURITY_TOKEN SecurityToken)
 	m_PeerAddr = Addr;
 	mem_zero(m_ErrorString, sizeof(m_ErrorString));
 
-	unsigned Now = time_get();
+	int64 Now = time_get();
 	m_LastSendTime = Now;
 	m_LastRecvTime = Now;
 	m_LastUpdateTime = Now;
@@ -243,8 +244,8 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 		pPacket->m_DataSize -= sizeof(m_SecurityToken);
 		if (m_SecurityToken != ToSecurityToken(&pPacket->m_aChunkData[pPacket->m_DataSize]))
 		{
-			//if(g_Config.m_Debug)
-				//dbg_msg("security", "token mismatch, expected %d got %d", m_SecurityToken, ToSecurityToken(&pPacket->m_aChunkData[pPacket->m_DataSize]));
+			if(g_Config.m_Debug)
+				dbg_msg("security", "token mismatch, expected %d got %d", m_SecurityToken, ToSecurityToken(&pPacket->m_aChunkData[pPacket->m_DataSize]));
 			return 0;
 		}
 	}
@@ -262,7 +263,7 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 	}
 	m_PeerAck = pPacket->m_Ack;
 
-	unsigned Now = time_get();
+	int64 Now = time_get();
 
 	// check if resend is requested
 	if(pPacket->m_Flags&NET_PACKETFLAG_RESEND)
@@ -297,8 +298,8 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 					SetError(Str);
 				}
 
-				//if(g_Config.m_Debug)
-					//dbg_msg("conn", "closed reason='%s'", Str);
+				if(g_Config.m_Debug)
+					dbg_msg("conn", "closed reason='%s'", Str);
 			}
 			return 0;
 		}
@@ -330,18 +331,18 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 						&& !mem_comp(&pPacket->m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC)))
 					{
 						m_SecurityToken = SecurityToken;
-						//if(g_Config.m_Debug)
-							//dbg_msg("security", "generated token %d", m_SecurityToken);
+						if(g_Config.m_Debug)
+							dbg_msg("security", "generated token %d", m_SecurityToken);
 					}
 					else
 					{
-						//if(g_Config.m_Debug)
-							//dbg_msg("security", "token not supported by client (packet size %d)", pPacket->m_DataSize);
+						if(g_Config.m_Debug)
+							dbg_msg("security", "token not supported by client (packet size %d)", pPacket->m_DataSize);
 						m_SecurityToken = NET_SECURITY_TOKEN_UNSUPPORTED;
 					}
 					SendControl(NET_CTRLMSG_CONNECTACCEPT, SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC));
-					//if(g_Config.m_Debug)
-						//dbg_msg("connection", "got connection, sending connect+accept");
+					if(g_Config.m_Debug)
+						dbg_msg("connection", "got connection, sending connect+accept");
 				}
 			}
 			else if(State() == NET_CONNSTATE_CONNECT)
@@ -354,20 +355,20 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 						&& !mem_comp(&pPacket->m_aChunkData[1], SECURITY_TOKEN_MAGIC, sizeof(SECURITY_TOKEN_MAGIC)))
 					{
 						m_SecurityToken = ToSecurityToken(&pPacket->m_aChunkData[1 + sizeof(SECURITY_TOKEN_MAGIC)]);
-						//if(g_Config.m_Debug)
-							//dbg_msg("security", "got token %d", m_SecurityToken);
+						if(g_Config.m_Debug)
+							dbg_msg("security", "got token %d", m_SecurityToken);
 					}
 					else
 					{
 						m_SecurityToken = NET_SECURITY_TOKEN_UNSUPPORTED;
-						//if(g_Config.m_Debug)
-							//dbg_msg("security", "token not supported by server");
+						if(g_Config.m_Debug)
+							dbg_msg("security", "token not supported by server");
 					}
 					m_LastRecvTime = Now;
 					SendControl(NET_CTRLMSG_ACCEPT, 0, 0);
 					m_State = NET_CONNSTATE_ONLINE;
-					//if(g_Config.m_Debug)
-						//dbg_msg("connection", "got connect+accept, sending accept. connection online");
+					if(g_Config.m_Debug)
+						dbg_msg("connection", "got connect+accept, sending accept. connection online");
 				}
 			}
 		}
@@ -378,8 +379,8 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 		{
 			m_LastRecvTime = Now;
 			m_State = NET_CONNSTATE_ONLINE;
-			//if(g_Config.m_Debug)
-				//dbg_msg("connection", "connecting online");
+			if(g_Config.m_Debug)
+				dbg_msg("connection", "connecting online");
 		}
 	}
 
@@ -394,9 +395,9 @@ int CNetConnection::Feed(CNetPacketConstruct *pPacket, NETADDR *pAddr, SECURITY_
 
 int CNetConnection::Update()
 {
-	unsigned Now = time_get();
+	int64 Now = time_get();
 
-	if(State() == NET_CONNSTATE_ERROR && m_TimeoutSituation && (Now-m_LastRecvTime) > time_freq()*1000)
+	if(State() == NET_CONNSTATE_ERROR && m_TimeoutSituation && (Now-m_LastRecvTime) > time_freq()*g_Config.m_ConnTimeoutProtection)
 	{
 		m_TimeoutSituation = false;
 		SetError("Timeout Protection over");
@@ -410,7 +411,7 @@ int CNetConnection::Update()
 	// check for timeout
 	if(State() != NET_CONNSTATE_OFFLINE &&
 		State() != NET_CONNSTATE_CONNECT &&
-		(Now-m_LastRecvTime) > time_freq()*100)
+		(Now-m_LastRecvTime) > time_freq()*g_Config.m_ConnTimeout)
 	{
 		m_State = NET_CONNSTATE_ERROR;
 		SetError("Timeout");
@@ -423,11 +424,11 @@ int CNetConnection::Update()
 		CNetChunkResend *pResend = m_Buffer.First();
 
 		// check if we have some really old stuff laying around and abort if not acked
-		if(Now-pResend->m_FirstSendTime > time_freq()*100)
+		if(Now-pResend->m_FirstSendTime > time_freq()*g_Config.m_ConnTimeout)
 		{
 			m_State = NET_CONNSTATE_ERROR;
 			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "Too weak connection (not acked for %d seconds)", 100);
+			str_format(aBuf, sizeof(aBuf), "Too weak connection (not acked for %d seconds)", g_Config.m_ConnTimeout);
 			SetError(aBuf);
 			m_TimeoutSituation = true;
 		}
@@ -445,8 +446,8 @@ int CNetConnection::Update()
 		if(time_get()-m_LastSendTime > time_freq()/2) // flush connection after 500ms if needed
 		{
 			int NumFlushedChunks = Flush();
-			//if(NumFlushedChunks && g_Config.m_Debug)
-				//dbg_msg("connection", "flushed connection due to timeout. %d chunks.", NumFlushedChunks);
+			if(NumFlushedChunks && g_Config.m_Debug)
+				dbg_msg("connection", "flushed connection due to timeout. %d chunks.", NumFlushedChunks);
 		}
 
 		if(time_get()-m_LastSendTime > time_freq())
@@ -468,7 +469,7 @@ int CNetConnection::Update()
 
 void CNetConnection::SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack, SECURITY_TOKEN SecurityToken)
 {
-	unsigned Now = time_get();
+	int64 Now = time_get();
 
 	m_Sequence = Sequence;
 	m_Ack = Ack;

@@ -4,6 +4,7 @@
 
 #include "packer.h"
 #include "compression.h"
+#include "config.h"
 
 void CPacker::Reset()
 {
