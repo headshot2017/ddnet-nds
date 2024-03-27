@@ -1,59 +1,108 @@
-#---------------------------------------------------------------------------------
-.SUFFIXES:
-#---------------------------------------------------------------------------------
-ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023
+
+BLOCKSDS	?= /opt/blocksds/core
+BLOCKSDSEXT	?= /opt/blocksds/external
+
+# User config
+# ===========
+
+NAME		?= ddnet-nds
+
+GAME_TITLE	?= Teeworlds NDS
+GAME_SUBTITLE	?= Built with BlocksDS
+GAME_AUTHOR	?= github.com/blocksds/sdk
+GAME_ICON	?= $(BLOCKSDS)/sys/icon.bmp
+
+# DLDI and internal SD slot of DSi
+# --------------------------------
+
+# Root folder of the SD image
+SDROOT		:= sdroot
+# Name of the generated image it "DSi-1.sd" for no$gba in DSi mode
+SDIMAGE		:= image.bin
+
+# Source code paths
+# -----------------
+
+NITROFSDIR	?=
+GENERATED	:=	build/arm9/game/generated
+
+# Tools
+# -----
+
+MAKE		:= make
+RM		:= rm -rf
+
+# Verbose flag
+# ------------
+
+ifeq ($(VERBOSE),1)
+V		:=
+else
+V		:= @
 endif
 
-include $(DEVKITARM)/ds_rules
+# Build artfacts
+# --------------
 
-export TARGET		:=	$(shell basename $(CURDIR))
-export TOPDIR		:=	$(CURDIR)
-GENERATED	:=	arm9/build/game/generated
+ROM		:= $(NAME).nds
 
+# Targets
+# -------
 
-.PHONY: arm7/$(TARGET).elf arm9/$(TARGET).elf
+.PHONY: all clean arm9 arm7 dldipatch sdimage
 
-#---------------------------------------------------------------------------------
-TEXT1		=	Teeworlds NDS
-TEXT2		=	Headshotnoby
-#TEXT3		=	""
-ICON		=  	$(DEVKITPRO)/libnds/icon.bmp
-NITRODIR	:= -d nitrofiles
-#---------------------------------------------------------------------------------
+all: $(ROM)
 
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
-all: target
-
-#---------------------------------------------------------------------------------
-$(TARGET).nds	:	arm7/$(TARGET).elf arm9/$(TARGET).elf
-	@echo Compiling ARM7 and ARM9
-	ndstool -c $(TARGET).nds -7 arm7/$(TARGET).elf -9 arm9/$(TARGET).elf -b $(ICON) "$(TEXT1);$(TEXT2)";
-
-#---------------------------------------------------------------------------------
-arm7/$(TARGET).elf:
-	@echo Compiling ARM7
-	@$(MAKE) -C arm7
-
-#---------------------------------------------------------------------------------
-arm9/$(TARGET).elf: $(GENERATED)
-	@echo Compiling ARM9
-	@$(MAKE) -C arm9
-
-#---------------------------------------------------------------------------------
 clean:
-	@$(MAKE) -C arm9 clean
-	@$(MAKE) -C arm7 clean
-	@rm -f $(TARGET).nds arm7/$(TARGET).elf arm9/$(TARGET).elf
+	@echo "  CLEAN"
+	$(V)$(MAKE) -f Makefile.arm9 clean --no-print-directory
+	$(V)$(MAKE) -f Makefile.arm7 clean --no-print-directory
+	$(V)$(RM) $(ROM) build $(SDIMAGE)
 
-#---------------------------------------------------------------------------------
+arm9: $(GENERATED)
+	$(V)$(MAKE) -f Makefile.arm9 --no-print-directory
+
+arm7:
+	$(V)$(MAKE) -f Makefile.arm7 --no-print-directory
+
+ifneq ($(strip $(NITROFSDIR)),)
+# Additional arguments for ndstool
+NDSTOOL_ARGS	:= -d $(NITROFSDIR)
+
+# Make the NDS ROM depend on the filesystem only if it is needed
+$(ROM): $(NITROFSDIR)
+endif
+
+# Combine the title strings
+ifeq ($(strip $(GAME_SUBTITLE)),)
+    GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_AUTHOR)
+else
+    GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)
+endif
+
+$(ROM): arm9 arm7
+	@echo "  NDSTOOL $@"
+	$(V)$(BLOCKSDS)/tools/ndstool/ndstool -c $@ \
+		-7 build/arm7.elf -9 build/arm9.elf \
+		-b $(GAME_ICON) "$(GAME_FULL_TITLE)" \
+		$(NDSTOOL_ARGS)
+
+sdimage:
+	@echo "  MKFATIMG $(SDIMAGE) $(SDROOT)"
+	$(V)$(BLOCKSDS)/tools/mkfatimg/mkfatimg -t $(SDROOT) $(SDIMAGE)
+
+dldipatch: $(ROM)
+	@echo "  DLDIPATCH $(ROM)"
+	$(V)$(BLOCKSDS)/tools/dldipatch/dldipatch patch \
+		$(BLOCKSDS)/sys/dldi_r4/r4tf.dldi $(ROM)
+
 $(GENERATED):
+	@echo "  GENERATE SOURCES"
 	@[ -d $@ ] || mkdir -p $@
 	python datasrc/compile.py network_source > $(GENERATED)/protocol.cpp
 	python datasrc/compile.py network_header > $(GENERATED)/protocol.h
 	python datasrc/compile.py client_content_source > $(GENERATED)/client_data.cpp
 	python datasrc/compile.py client_content_header > $(GENERATED)/client_data.h
-
-target: $(TARGET).nds

@@ -49,7 +49,7 @@ struct addrinfo {
 	#include <netdb.h>
 	#include <netinet/in.h>
 	#include <fcntl.h>
-	#include <pthread.h>
+	//#include <pthread.h>
 	#include <arpa/inet.h>
 
 	#include <dirent.h>
@@ -280,11 +280,10 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 
 static void logger_stdout(const char *line)
 {
+	printf("%s\n", line);
 #ifdef ARM9
-	iprintf("%s\n", line);
 	swiWaitForVBlank();
 #else
-	printf("%s\n", line);
 	fflush(stdout);
 #endif
 
@@ -705,9 +704,9 @@ void set_new_tick()
 }
 
 /* -----  time ----- */
-unsigned time_get()
+int64 time_get()
 {
-	static unsigned last = 0;
+	static int64 last = 0;
 	if(!new_tick)
 		return last;
 	if(new_tick != -1)
@@ -719,15 +718,20 @@ unsigned time_get()
 	last = (int64)val.tv_sec*(int64)1000000+(int64)val.tv_usec;
 	return last;
 #elif defined(ARM9)
-	static unsigned ticks = 0;
+	struct timeval val;
+	gettimeofday(&val, NULL);
+	last = ((int64)val.tv_sec * 1000 + 62135596800000ULL); // no usec on the DS
+	return last;
+/*	static int64 ticks = 0;
 	if (last == 0 && ticks == 0)
 		timerStart(0, ClockDivider_1024, 0, NULL);
 	ticks += timerElapsed(0);
-	last = (unsigned)(ticks/(float)TIMER_SPEED*1000);
+	last = (int64)(ticks/(float)TIMER_SPEED*1000);
 	return last;
+*/
 #elif defined(CONF_FAMILY_WINDOWS)
 	{
-		unsigned t;
+		int64 t;
 		QueryPerformanceCounter((PLARGE_INTEGER)&t);
 		if(t<last) /* for some reason, QPC can return values in the past */
 			return last;
@@ -739,14 +743,14 @@ unsigned time_get()
 #endif
 }
 
-unsigned time_freq()
+int64 time_freq()
 {
 #if defined(CONF_FAMILY_UNIX)
 	return 1000000;
 #elif defined (ARM9)
 	return 1000;
 #elif defined(CONF_FAMILY_WINDOWS)
-	unsigned t;
+	int64 t;
 	QueryPerformanceFrequency((PLARGE_INTEGER)&t);
 	return t;
 #else

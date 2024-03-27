@@ -67,7 +67,7 @@ int main(int argc, const char **argv)
 #ifdef ARM9
 	str_copy(pClient->m_aCmdConnect, "74.91.124.108:8300", sizeof(pClient->m_aCmdConnect));
 	str_copy(m_DesiredName, "libnds", MAX_NAME_LENGTH);
-	str_copy(m_DesiredClan, "devkitARM", MAX_CLAN_LENGTH);
+	str_copy(m_DesiredClan, "BlocksDS", MAX_CLAN_LENGTH);
 	pClient->Run();
 	while (1) swiWaitForVBlank();
 #else

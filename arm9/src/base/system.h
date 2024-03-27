@@ -450,7 +450,7 @@ void set_new_tick();
 	Remarks:
 		To know how fast the timer is ticking, see <time_freq>.
 */
-unsigned time_get();
+int64 time_get();
 
 /*
 	Function: time_freq
@@ -459,7 +459,7 @@ unsigned time_get();
 	Returns:
 		Returns the frequency of the high resolution timer.
 */
-unsigned time_freq();
+int64 time_freq();
 
 /*
 	Function: time_timestamp
