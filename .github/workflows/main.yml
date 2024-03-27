@@ -14,7 +14,9 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Get dependencies
-      run: apt install python
+      run: |
+        apt-get update
+        apt-get install -y python
 
     - name: Make
       run: |
