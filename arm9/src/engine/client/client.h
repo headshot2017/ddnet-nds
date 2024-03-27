@@ -4,26 +4,27 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/network.h>
 #include <engine/shared/snapshot.h>
+#include <engine/storage.h>
 #include <engine/serverbrowser.h>
 #include <game/generated/protocol.h>
 
 class CSmoothTime
 {
-	unsigned m_Snap;
-	unsigned m_Current;
-	unsigned m_Target;
+	int64 m_Snap;
+	int64 m_Current;
+	int64 m_Target;
 
 	int m_SpikeCounter;
 
 	float m_aAdjustSpeed[2]; // 0 = down, 1 = up
 public:
-	void Init(unsigned Target);
+	void Init(int64 Target);
 	void SetAdjustSpeed(int Direction, float Value);
 
-	unsigned Get(unsigned Now);
+	int64 Get(int64 Now);
 
-	void UpdateInt(unsigned Target);
-	void Update(unsigned Target, int TimeLeft, int AdjustDirection);
+	void UpdateInt(int64 Target);
+	void Update(int64 Target, int TimeLeft, int AdjustDirection);
 };
 
 class CClient : public IClient
@@ -31,6 +32,7 @@ class CClient : public IClient
 	// needed interfaces
 	IEngine *m_pEngine;
 	//IGameClient *m_pGameClient;
+	IStorage *m_pStorage;
 
 	enum
 	{
@@ -112,6 +114,7 @@ class CClient : public IClient
 
 public:
 	IEngine *Engine() { return m_pEngine; }
+	IStorage *Storage() { return m_pStorage; }
 
 	CClient();
 

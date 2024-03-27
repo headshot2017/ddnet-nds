@@ -718,17 +718,12 @@ int64 time_get()
 	last = (int64)val.tv_sec*(int64)1000000+(int64)val.tv_usec;
 	return last;
 #elif defined(ARM9)
-	struct timeval val;
-	gettimeofday(&val, NULL);
-	last = ((int64)val.tv_sec * 1000 + 62135596800000ULL); // no usec on the DS
-	return last;
-/*	static int64 ticks = 0;
+	static int64 ticks = 0;
 	if (last == 0 && ticks == 0)
 		timerStart(0, ClockDivider_1024, 0, NULL);
 	ticks += timerElapsed(0);
 	last = (int64)(ticks/(float)TIMER_SPEED*1000);
 	return last;
-*/
 #elif defined(CONF_FAMILY_WINDOWS)
 	{
 		int64 t;
