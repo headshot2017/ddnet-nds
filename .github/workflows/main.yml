@@ -13,10 +13,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Get dependencies
-      run: |
-        apt-get update
-        apt-get install -y python
+    - name: Install python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '2.7'
 
     - name: Make
       run: |
