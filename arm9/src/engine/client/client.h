@@ -50,6 +50,9 @@ class CClient : public IClient
 
 	int m_AckGameTick[2];
 	int m_CurrentRecvTick[2];
+	int m_RconAuthed[2];
+	char m_RconPassword[32];
+	int m_UseTempRconCommands;
 	
 	// version-checking
 	char m_aVersionStr[10];
@@ -120,6 +123,9 @@ public:
 	// ----- send functions -----
 	virtual int SendMsg(CMsgPacker *pMsg, int Flags);
 	virtual int SendMsgExY(CMsgPacker *pMsg, int Flags, bool System=true, int NetClient=1);
+
+	virtual bool RconAuthed() { return m_RconAuthed[g_Config.m_ClDummy] != 0; }
+	virtual bool UseTempRconCommands() { return m_UseTempRconCommands != 0; }
 
 	//
 	char m_aCmdConnect[256];

@@ -140,17 +140,39 @@ void CSmoothTime::Update(int64 Target, int TimeLeft, int AdjustDirection)
 
 CClient::CClient() : IClient()
 {
+	//m_DemoRecorder[0] = CDemoRecorder(&m_SnapshotDelta);
+	//m_DemoRecorder[1] = CDemoRecorder(&m_SnapshotDelta);
+	//m_DemoRecorder[2] = CDemoRecorder(&m_SnapshotDelta);
+
+	//m_pEditor = 0;
 	m_pInput = 0;
+	//m_pGraphics = 0;
+	//m_pSound = 0;
+	//m_pGameClient = 0;
+	//m_pMap = 0;
 	m_pConsole = 0;
-	
+
+	/*m_RenderFrameTime = 0.0001f;
+	m_RenderFrameTimeLow = 1.0f;
+	m_RenderFrameTimeHigh = 0.0f;
+	m_RenderFrames = 0;
+	m_LastRenderTime = time_get();*/
+
 	m_GameTickSpeed = SERVER_TICK_SPEED;
 
+	//m_WindowMustRefocus = 0;
 	m_SnapCrcErrors = 0;
+	//m_AutoScreenshotRecycle = false;
+	//m_AutoStatScreenshotRecycle = false;
+	//m_EditorActive = false;
 
 	m_AckGameTick[0] = -1;
 	m_AckGameTick[1] = -1;
 	m_CurrentRecvTick[0] = 0;
 	m_CurrentRecvTick[1] = 0;
+	m_RconAuthed[0] = 0;
+	m_RconAuthed[1] = 0;
+	m_RconPassword[0] = '\0';
 
 	// version-checking
 	m_aVersionStr[0] = '0';
@@ -166,34 +188,30 @@ CClient::CClient() : IClient()
 	//
 	m_aCmdConnect[0] = 0;
 
-	m_CurrentServerInfoRequestTime = -1;
-
-	m_CurrentInput[0] = 0;
-	m_CurrentInput[1] = 0;
-	m_LastDummy = 0;
-	m_LastDummy2 = 0;
-
-	mem_zero(&m_aInputs, sizeof(m_aInputs));
-
-	/*
 	// map download
-	m_aMapdownloadFilename[0] = 0;
+	/*m_aMapdownloadFilename[0] = 0;
 	m_aMapdownloadName[0] = 0;
 	m_pMapdownloadTask = 0;
 	m_MapdownloadFile = 0;
 	m_MapdownloadChunk = 0;
 	m_MapdownloadCrc = 0;
 	m_MapdownloadAmount = -1;
-	m_MapdownloadTotalsize = -1;
+	m_MapdownloadTotalsize = -1;*/
 
+	m_CurrentServerInfoRequestTime = -1;
+
+	m_CurrentInput[0] = 0;
+	m_CurrentInput[1] = 0;
+	m_LastDummy = 0;
+	m_LastDummy2 = 0;
 	m_LocalIDs[0] = 0;
 	m_LocalIDs[1] = 0;
-	m_Fire = 0;
+	//m_Fire = 0;
 
-	mem_zero(&m_DummyInput, sizeof(m_DummyInput));
-	mem_zero(&HammerInput, sizeof(HammerInput));
-	HammerInput.m_Fire = 0;
-	*/
+	mem_zero(&m_aInputs, sizeof(m_aInputs));
+	//mem_zero(&m_DummyInput, sizeof(m_DummyInput));
+	//mem_zero(&HammerInput, sizeof(HammerInput));
+	//HammerInput.m_Fire = 0;
 
 	m_State = IClient::STATE_OFFLINE;
 	m_aServerAddressStr[0] = 0;
@@ -205,6 +223,11 @@ CClient::CClient() : IClient()
 	m_ReceivedSnapshots[1] = 0;
 
 	m_VersionInfo.m_State = CVersionInfo::STATE_INIT;
+
+	//if (g_Config.m_ClDummy == 0)
+		//m_LastDummyConnectTime = 0;
+
+	//m_DDNetSrvListTokenSet = false;
 
 	for(int i = 0; i < NUM_NETOBJTYPES; i++)
 		SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
@@ -768,6 +791,65 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 		{
 			CMsgPacker Msg(NETMSG_PING_REPLY);
 			SendMsgEx(&Msg, 0);
+		}
+		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_RCON_CMD_ADD)
+		{
+			const char *pName = Unpacker.GetString(CUnpacker::SANITIZE_CC);
+			const char *pHelp = Unpacker.GetString(CUnpacker::SANITIZE_CC);
+			const char *pParams = Unpacker.GetString(CUnpacker::SANITIZE_CC);
+			if(Unpacker.Error() == 0)
+				m_pConsole->RegisterTemp(pName, pParams, CFGFLAG_SERVER, pHelp);
+		}
+		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_RCON_CMD_REM)
+		{
+			const char *pName = Unpacker.GetString(CUnpacker::SANITIZE_CC);
+			if(Unpacker.Error() == 0)
+				m_pConsole->DeregisterTemp(pName);
+		}
+		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_RCON_AUTH_STATUS)
+		{
+			int Result = Unpacker.GetInt();
+			if(Unpacker.Error() == 0)
+				m_RconAuthed[g_Config.m_ClDummy] = Result;
+			int Old = m_UseTempRconCommands;
+			m_UseTempRconCommands = Unpacker.GetInt();
+			if(Unpacker.Error() != 0)
+				m_UseTempRconCommands = 0;
+			if(Old != 0 && m_UseTempRconCommands == 0)
+				m_pConsole->DeregisterTempAll();
+		}
+		else if((pPacket->m_Flags&NET_CHUNKFLAG_VITAL) != 0 && Msg == NETMSG_RCON_LINE)
+		{
+			//const char *pLine = Unpacker.GetString();
+			//if(Unpacker.Error() == 0)
+				//GameClient()->OnRconLine(pLine);
+		}
+		else if(Msg == NETMSG_PING_REPLY)
+		{
+			char aBuf[256];
+			str_format(aBuf, sizeof(aBuf), "latency %.2f", (time_get() - m_PingStartTime)*1000 / (float)time_freq());
+			m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "client/network", aBuf);
+		}
+		else if(Msg == NETMSG_INPUTTIMING)
+		{
+			int InputPredTick = Unpacker.GetInt();
+			int TimeLeft = Unpacker.GetInt();
+			int64 Now = time_get();
+
+			// adjust our prediction time
+			int64 Target = 0;
+			for(int k = 0; k < 200; k++)
+			{
+				if(m_aInputs[g_Config.m_ClDummy][k].m_Tick == InputPredTick)
+				{
+					Target = m_aInputs[g_Config.m_ClDummy][k].m_PredictedTime + (Now - m_aInputs[g_Config.m_ClDummy][k].m_Time);
+					Target = Target - (int64)(((TimeLeft-PREDICTION_MARGIN)/1000.0f)*time_freq());
+					break;
+				}
+			}
+
+			if(Target)
+				m_PredictedTime.Update(Target, TimeLeft, 1);
 		}
 		else if(Msg == NETMSG_SNAP || Msg == NETMSG_SNAPSINGLE || Msg == NETMSG_SNAPEMPTY)
 		{
