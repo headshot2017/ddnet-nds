@@ -1,12 +1,7 @@
-#include <base/system.h>
-#include <engine/client.h>
-#include <engine/engine.h>
-#include <engine/shared/protocol.h>
-#include <engine/shared/network.h>
-#include <engine/shared/snapshot.h>
-#include <engine/storage.h>
-#include <engine/serverbrowser.h>
-#include <game/generated/protocol.h>
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#ifndef ENGINE_CLIENT_CLIENT_H
+#define ENGINE_CLIENT_CLIENT_H
 
 class CSmoothTime
 {
@@ -31,6 +26,7 @@ class CClient : public IClient
 {
 	// needed interfaces
 	IEngine *m_pEngine;
+	IEngineInput *m_pInput;
 	//IGameClient *m_pGameClient;
 	IStorage *m_pStorage;
 
@@ -114,6 +110,8 @@ class CClient : public IClient
 
 public:
 	IEngine *Engine() { return m_pEngine; }
+	IEngineInput *Input() { return m_pInput; }
+	//IGameClient *GameClient() { return m_pGameClient; }
 	IStorage *Storage() { return m_pStorage; }
 
 	CClient();
@@ -170,3 +168,5 @@ public:
 	void Update();
 	void Run();
 };
+
+#endif

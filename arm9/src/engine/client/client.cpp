@@ -1,15 +1,57 @@
-#include "client.h"
-#include <game/generated/protocol.h>
-#include <engine/shared/compression.h>
+/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
+/* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include <new>
+
+#include <nds.h>
+#include <dswifi9.h>
+#include <netinet/in.h>
+
+#include <time.h>
+#include <stdlib.h> // qsort
+#include <stdarg.h>
+#include <string.h>
+#include <climits>
+
+#include <base/math.h>
+#include <base/vmath.h>
+#include <base/system.h>
+
+//#include <game/client/components/menus.h>
+//#include <game/client/gameclient.h>
+
+#include <engine/client.h>
+#include <engine/config.h>
+#include <engine/console.h>
+#include <engine/engine.h>
+#include <engine/input.h>
+#include <engine/keys.h>
+#include <engine/map.h>
+#include <engine/serverbrowser.h>
+#include <engine/storage.h>
+
 #include <engine/shared/config.h>
-#include <mastersrv/mastersrv.h>
-#include <main.h>
+#include <engine/shared/compression.h>
+#include <engine/shared/datafile.h>
+#include <engine/shared/demo.h>
+#include <engine/shared/filecollection.h>
+#include <engine/shared/mapchecker.h>
+#include <engine/shared/network.h>
+#include <engine/shared/packer.h>
+#include <engine/shared/protocol.h>
+#include <engine/shared/ringbuffer.h>
+#include <engine/shared/snapshot.h>
+#include <engine/shared/fifoconsole.h>
 
 #include <game/version.h>
+#include <game/generated/protocol.h>
 
-#ifdef ARM9
-#include <nds.h>
-#endif
+#include <mastersrv/mastersrv.h>
+#include <versionsrv/versionsrv.h>
+
+#include "client.h"
+
+static char m_DesiredName[MAX_NAME_LENGTH];
+static char m_DesiredClan[MAX_NAME_LENGTH];
 
 void CSmoothTime::Init(int64 Target)
 {
@@ -98,6 +140,8 @@ void CSmoothTime::Update(int64 Target, int TimeLeft, int AdjustDirection)
 
 CClient::CClient() : IClient()
 {
+	m_pInput = 0;
+	
 	m_GameTickSpeed = SERVER_TICK_SPEED;
 
 	m_SnapCrcErrors = 0;
@@ -493,6 +537,7 @@ void CClient::InitInterfaces()
 {
 	// fetch interfaces
 	m_pEngine = Kernel()->RequestInterface<IEngine>();
+	m_pInput = Kernel()->RequestInterface<IEngineInput>();
 	m_pStorage = Kernel()->RequestInterface<IStorage>();
 }
 
@@ -1352,6 +1397,11 @@ void CClient::Run()
 		}
 	}
 
+	// init the input
+	Input()->Init();
+
+	Input()->MouseModeRelative();
+
 	while (1)
 	{
 		// handle pending connects
@@ -1360,6 +1410,8 @@ void CClient::Run()
 			Connect(m_aCmdConnect);
 			m_aCmdConnect[0] = 0;
 		}
+
+		Input()->Update();
 
 		// check conditions
 		if(State() == IClient::STATE_QUITING || State() == IClient::STATE_OFFLINE)
@@ -1370,15 +1422,10 @@ void CClient::Run()
 		// update local time
 		m_LocalTime = (time_get()-m_LocalStartTime)/(float)time_freq();
 #ifdef ARM9
-		scanKeys();
-
-		int held = keysHeld();
-		int down = keysDown();
-		int up = keysUp();
-		if (down & KEY_START)
+		if (keysDown() & KEY_START)
 			Disconnect();
 
-		CNetObj_PlayerInput* input = (CNetObj_PlayerInput*)m_aInputs[0][m_CurrentInput[0]].m_aData;
+		/*CNetObj_PlayerInput* input = (CNetObj_PlayerInput*)m_aInputs[0][m_CurrentInput[0]].m_aData;
 		input->m_Direction = (held & KEY_LEFT) ? -1 : (held & KEY_RIGHT) ? 1 : 0;
 		input->m_Jump = (held & KEY_UP || held & KEY_B) ? 1 : 0;
 		input->m_Hook = (held & KEY_L) ? 1 : 0;
@@ -1405,8 +1452,110 @@ void CClient::Run()
 
 			lastXY = thisXY;
 		}
+		*/
 
 		swiWaitForVBlank();
 #endif
 	}
+}
+
+
+
+static CClient *CreateClient()
+{
+	CClient *pClient = static_cast<CClient *>(mem_alloc(sizeof(CClient), 1));
+	mem_zero(pClient, sizeof(CClient));
+	return new(pClient) CClient;
+}
+
+int main(int argc, const char **argv)
+{
+#ifdef ARM9
+	consoleDemoInit();
+	consoleDebugInit(DebugDevice_NOCASH);
+#endif
+
+	CClient *pClient = CreateClient();
+	IKernel *pKernel = IKernel::Create();
+	pKernel->RegisterInterface(pClient);
+	pClient->RegisterInterfaces();
+
+	// create the components
+	IEngine *pEngine = CreateEngine("Teeworlds");
+	IConsole *pConsole = CreateConsole(CFGFLAG_CLIENT);
+	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_CLIENT, argc, argv); // ignore_convention
+	IConfig *pConfig = CreateConfig();
+	IEngineInput *pEngineInput = CreateEngineInput();
+
+	{
+		bool RegisterFail = false;
+
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pEngine);
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConsole);
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(pConfig);
+
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IEngineInput*>(pEngineInput)); // register as both
+		RegisterFail = RegisterFail || !pKernel->RegisterInterface(static_cast<IInput*>(pEngineInput));
+
+		pKernel->RegisterInterface(pStorage);
+
+		while (RegisterFail) swiWaitForVBlank(); // stop here if registering an interface fails
+	}
+
+	pEngine->Init();
+	pConfig->Init();
+
+	// register all console commands
+	//pClient->RegisterCommands();
+
+	//pKernel->RequestInterface<IGameClient>()->OnConsoleInit();
+
+	// init client's interfaces
+	pClient->InitInterfaces();
+
+	pClient->Engine()->InitLogfile();
+
+#ifdef ARM9
+	dbg_msg("wifi", "connecting DS to WiFi network");
+	if(!Wifi_InitDefault(WFC_CONNECT)) {
+		dbg_msg("wifi", "connection failed. please check your WFC settings by using a retail DS game, or the DSi wifi settings");
+		while (1) swiWaitForVBlank();
+	} else {
+
+		dbg_msg("wifi", "connection successful");
+		/*struct in_addr ip, gateway, mask, dns1, dns2;
+
+		iprintf("ip     : %s\n", inet_ntoa(ip) );
+		ip = Wifi_GetIPInfo(&gateway, &mask, &dns1, &dns2);
+		
+		iprintf("gateway: %s\n", inet_ntoa(gateway) );
+		iprintf("mask   : %s\n", inet_ntoa(mask) );
+		iprintf("dns1   : %s\n", inet_ntoa(dns1) );
+		iprintf("dns2   : %s\n", inet_ntoa(dns2) );*/
+	}
+#else
+	if(secure_random_init() != 0)
+	{
+		dbg_msg("secure", "could not initialize secure RNG");
+		return 0;
+	}
+#endif
+
+#ifdef ARM9
+	str_copy(pClient->m_aCmdConnect, "74.91.124.108:8300", sizeof(pClient->m_aCmdConnect));
+	str_copy(m_DesiredName, "libnds", MAX_NAME_LENGTH);
+	str_copy(m_DesiredClan, "BlocksDS", MAX_CLAN_LENGTH);
+	pClient->Run();
+	while (1) swiWaitForVBlank();
+#else
+	str_copy(pClient->m_aCmdConnect, argv[1], sizeof(pClient->m_aCmdConnect));
+	str_copy(m_DesiredName, (argc > 2) ? argv[2] : "chatonly", MAX_NAME_LENGTH);
+	str_copy(m_DesiredClan, (argc > 3) ? argv[3] : "test", MAX_CLAN_LENGTH);
+	pClient->Run();
+#endif
+
+	// write down the config and quit
+	pConfig->Save();
+
+	return 0;
 }
