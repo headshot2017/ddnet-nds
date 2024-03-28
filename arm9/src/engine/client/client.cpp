@@ -141,6 +141,7 @@ void CSmoothTime::Update(int64 Target, int TimeLeft, int AdjustDirection)
 CClient::CClient() : IClient()
 {
 	m_pInput = 0;
+	m_pConsole = 0;
 	
 	m_GameTickSpeed = SERVER_TICK_SPEED;
 
@@ -418,6 +419,12 @@ void CClient::SetState(int s)
 		return;
 
 	//int Old = m_State;
+	if(g_Config.m_Debug)
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "state change. last=%d current=%d", m_State, s);
+		m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client", aBuf);
+	}
 	m_State = s;
 	//if(Old != s)
 		//GameClient()->OnStateChange(m_State, Old);
@@ -547,8 +554,8 @@ void *CClient::SnapGetItem(int SnapID, int Index, CSnapItem *pItem)
 {
 	CSnapshotItem *i;
 	dbg_assert(SnapID >= 0 && SnapID < NUM_SNAPSHOT_TYPES, "invalid SnapID");
-	i = m_aSnapshots[0][SnapID]->m_pAltSnap->GetItem(Index);
-	pItem->m_DataSize = m_aSnapshots[0][SnapID]->m_pAltSnap->GetItemSize(Index);
+	i = m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItem(Index);
+	pItem->m_DataSize = m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItemSize(Index);
 	pItem->m_Type = i->Type();
 	pItem->m_ID = i->ID();
 	return (void *)i->Data();
@@ -558,13 +565,13 @@ void CClient::SnapInvalidateItem(int SnapID, int Index)
 {
 	CSnapshotItem *i;
 	dbg_assert(SnapID >= 0 && SnapID < NUM_SNAPSHOT_TYPES, "invalid SnapID");
-	i = m_aSnapshots[0][SnapID]->m_pAltSnap->GetItem(Index);
+	i = m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItem(Index);
 	if(i)
 	{
-		if((char *)i < (char *)m_aSnapshots[0][SnapID]->m_pAltSnap || (char *)i > (char *)m_aSnapshots[0][SnapID]->m_pAltSnap + m_aSnapshots[0][SnapID]->m_SnapSize)
-			dbg_msg("client", "snap invalidate problem");
-		if((char *)i >= (char *)m_aSnapshots[0][SnapID]->m_pSnap && (char *)i < (char *)m_aSnapshots[0][SnapID]->m_pSnap + m_aSnapshots[0][SnapID]->m_SnapSize)
-			dbg_msg("client", "snap invalidate problem");
+		if((char *)i < (char *)m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap || (char *)i > (char *)m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap + m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_SnapSize)
+			m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client", "snap invalidate problem");
+		if((char *)i >= (char *)m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pSnap && (char *)i < (char *)m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pSnap + m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_SnapSize)
+			m_pConsole->Print(IConsole::OUTPUT_LEVEL_DEBUG, "client", "snap invalidate problem");
 		i->m_TypeAndID = -1;
 	}
 }
@@ -574,12 +581,12 @@ void *CClient::SnapFindItem(int SnapID, int Type, int ID)
 	// TODO: linear search. should be fixed.
 	int i;
 
-	if(!m_aSnapshots[0][SnapID])
+	if(!m_aSnapshots[g_Config.m_ClDummy][SnapID])
 		return 0x0;
 
-	for(i = 0; i < m_aSnapshots[0][SnapID]->m_pSnap->NumItems(); i++)
+	for(i = 0; i < m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pSnap->NumItems(); i++)
 	{
-		CSnapshotItem *pItem = m_aSnapshots[0][SnapID]->m_pAltSnap->GetItem(i);
+		CSnapshotItem *pItem = m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pAltSnap->GetItem(i);
 		if(pItem->Type() == Type && pItem->ID() == ID)
 			return (void *)pItem->Data();
 	}
@@ -589,9 +596,9 @@ void *CClient::SnapFindItem(int SnapID, int Type, int ID)
 int CClient::SnapNumItems(int SnapID)
 {
 	dbg_assert(SnapID >= 0 && SnapID < NUM_SNAPSHOT_TYPES, "invalid SnapID");
-	if(!m_aSnapshots[0][SnapID])
+	if(!m_aSnapshots[g_Config.m_ClDummy][SnapID])
 		return 0;
-	return m_aSnapshots[0][SnapID]->m_pSnap->NumItems();
+	return m_aSnapshots[g_Config.m_ClDummy][SnapID]->m_pSnap->NumItems();
 }
 
 void CClient::SnapSetStaticsize(int ItemType, int Size)

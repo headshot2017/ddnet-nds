@@ -28,6 +28,7 @@ class CClient : public IClient
 	IEngine *m_pEngine;
 	IEngineInput *m_pInput;
 	//IGameClient *m_pGameClient;
+	IConsole *m_pConsole;
 	IStorage *m_pStorage;
 
 	enum
