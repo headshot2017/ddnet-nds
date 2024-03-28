@@ -5,6 +5,8 @@
 #include <mastersrv/mastersrv.h>
 #include <main.h>
 
+#include <game/version.h>
+
 #ifdef ARM9
 #include <nds.h>
 #endif
@@ -253,7 +255,7 @@ void CClient::SendReady()
 
 void CClient::SendInput()
 {
-	unsigned Now = time_get();
+	int64 Now = time_get();
 
 	if(m_PredTick[0] <= 0)
 		return;
@@ -265,20 +267,20 @@ void CClient::SendInput()
 	{
 		// pack input
 		CMsgPacker Msg(NETMSG_INPUT);
-		Msg.AddInt(m_AckGameTick[0]);
-		Msg.AddInt(m_PredTick[0]);
+		Msg.AddInt(m_AckGameTick[g_Config.m_ClDummy]);
+		Msg.AddInt(m_PredTick[g_Config.m_ClDummy]);
 		Msg.AddInt(Size);
 
-		m_aInputs[0][m_CurrentInput[0]].m_Tick = m_PredTick[0];
-		m_aInputs[0][m_CurrentInput[0]].m_PredictedTime = m_PredictedTime.Get(Now);
-		m_aInputs[0][m_CurrentInput[0]].m_Time = Now;
+		m_aInputs[g_Config.m_ClDummy][m_CurrentInput[g_Config.m_ClDummy]].m_Tick = m_PredTick[g_Config.m_ClDummy];
+		m_aInputs[g_Config.m_ClDummy][m_CurrentInput[g_Config.m_ClDummy]].m_PredictedTime = m_PredictedTime.Get(Now);
+		m_aInputs[g_Config.m_ClDummy][m_CurrentInput[g_Config.m_ClDummy]].m_Time = Now;
 
 		// pack it
 		for(int i = 0; i < Size/4; i++)
-			Msg.AddInt(m_aInputs[0][m_CurrentInput[0]].m_aData[i]);
+			Msg.AddInt(m_aInputs[g_Config.m_ClDummy][m_CurrentInput[g_Config.m_ClDummy]].m_aData[i]);
 
-		m_CurrentInput[0]++;
-		m_CurrentInput[0]%=200;
+		m_CurrentInput[g_Config.m_ClDummy]++;
+		m_CurrentInput[g_Config.m_ClDummy]%=200;
 
 		SendMsgEx(&Msg, MSGFLAG_FLUSH);
 	}
@@ -421,16 +423,26 @@ void CClient::ServerInfoRequest()
 
 void CClient::OnEnterGame()
 {
+	// reset input
+	int i;
+	for(i = 0; i < 200; i++)
+	{
+		m_aInputs[0][i].m_Tick = -1;
+		m_aInputs[1][i].m_Tick = -1;
+	}
+	m_CurrentInput[0] = 0;
+	m_CurrentInput[1] = 0;
+
 	// reset snapshots
-	m_aSnapshots[0][SNAP_CURRENT] = 0;
-	m_aSnapshots[0][SNAP_PREV] = 0;
-	m_SnapshotStorage[0].PurgeAll();
-	m_ReceivedSnapshots[0] = 0;
+	m_aSnapshots[g_Config.m_ClDummy][SNAP_CURRENT] = 0;
+	m_aSnapshots[g_Config.m_ClDummy][SNAP_PREV] = 0;
+	m_SnapshotStorage[g_Config.m_ClDummy].PurgeAll();
+	m_ReceivedSnapshots[g_Config.m_ClDummy] = 0;
 	m_SnapshotParts = 0;
-	m_PredTick[0] = 0;
-	m_CurrentRecvTick[0] = 0;
-	m_CurGameTick[0] = 0;
-	m_PrevGameTick[0] = 0;
+	m_PredTick[g_Config.m_ClDummy] = 0;
+	m_CurrentRecvTick[g_Config.m_ClDummy] = 0;
+	m_CurGameTick[g_Config.m_ClDummy] = 0;
+	m_PrevGameTick[g_Config.m_ClDummy] = 0;
 
 	CMsgPacker Msg(NETMSGTYPE_CL_ISDDNET);
 	Msg.AddInt(2004);

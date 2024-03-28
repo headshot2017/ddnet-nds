@@ -27,7 +27,7 @@ SDIMAGE		:= image.bin
 # -----------------
 
 NITROFSDIR	?=
-GENERATED	:=	build/arm9/game/generated
+GENERATED	:=	build/src/game/generated
 
 # Tools
 # -----
@@ -106,3 +106,5 @@ $(GENERATED):
 	python datasrc/compile.py network_header > $(GENERATED)/protocol.h
 	python datasrc/compile.py client_content_source > $(GENERATED)/client_data.cpp
 	python datasrc/compile.py client_content_header > $(GENERATED)/client_data.h
+	#nethash = CHash("src/game/generated/nethash.cpp", "src/engine/shared/protocol.h", "src/game/generated/protocol.h", "src/game/tuning.h", "src/game/gamecore.cpp", network_header)
+	python datasrc/cmd5.py arm9/src/engine/shared/protocol.h $(GENERATED)/protocol.h arm9/src/game/tuning.h arm9/src/game/gamecore.cpp $(GENERATED)/protocol.h > $(GENERATED)/nethash.cpp
