@@ -52,33 +52,18 @@ void CInput::Init()
 void CInput::MouseRelative(float *x, float *y)
 {
 	int nx = 0, ny = 0;
-	float Sens = ((g_Config.m_ClDyncam && g_Config.m_ClDyncamMousesens) ? g_Config.m_ClDyncamMousesens : g_Config.m_InpMousesens) / 100.0f;
 
 	touchPosition thisXY;
 	touchRead(&thisXY);
 	//static touchPosition lastXY = {0,0,0,0};
 
-	//int16 dx = (thisXY.px - lastXY.px) / 2;
-	//int16 dy = (thisXY.py - lastXY.py) / 2;
 	nx = thisXY.px;
 	ny = thisXY.py;
 
 	//lastXY = thisXY;
 
-	/*if(g_Config.m_InpGrab)
-		SDL_GetRelativeMouseState(&nx, &ny);
-	else
-	{
-		if(m_InputGrabbed)
-		{
-			SDL_GetMouseState(&nx,&ny);
-			SDL_WarpMouse(Graphics()->ScreenWidth()/2,Graphics()->ScreenHeight()/2);
-			nx -= Graphics()->ScreenWidth()/2; ny -= Graphics()->ScreenHeight()/2;
-		}
-	}*/
-
-	*x = nx*Sens;
-	*y = ny*Sens;
+	*x = nx;
+	*y = ny;
 }
 
 void CInput::MouseModeAbsolute()
@@ -128,10 +113,10 @@ int CInput::Update()
 		scanKeys();
 		int held = keysHeld();
 
-		m_aInputState[m_InputCurrent][KEY_LEFTARROW] = !!(held & KEY_LEFT);
-		m_aInputState[m_InputCurrent][KEY_RIGHTARROW] = !!(held & KEY_RIGHT);
-		m_aInputState[m_InputCurrent][KEY_UPARROW] = !!(held & KEY_B);
-		m_aInputState[m_InputCurrent][KEY_MOUSE_1] = !!(held & KEY_Y);
+		m_aInputState[m_InputCurrent][KEY_a] = !!(held & KEY_LEFT);
+		m_aInputState[m_InputCurrent][KEY_d] = !!(held & KEY_RIGHT);
+		m_aInputState[m_InputCurrent][KEY_SPACE] = !!(held & KEY_B);
+		m_aInputState[m_InputCurrent][KEY_MOUSE_1] = !!(held & KEY_TOUCH) || !!(held & KEY_Y);
 		m_aInputState[m_InputCurrent][KEY_MOUSE_2] = !!(held & KEY_L);
 		m_aInputState[m_InputCurrent][KEY_ESCAPE] = !!(held & KEY_START);
 	}

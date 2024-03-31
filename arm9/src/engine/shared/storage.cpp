@@ -4,6 +4,8 @@
 #include <engine/storage.h>
 #include "linereader.h"
 
+#include <fat.h>
+
 // compiled-in data-dir path
 #define DATA_DIR "data"
 
@@ -161,75 +163,8 @@ public:
 
 	void FindDatadir(const char *pArgv0)
 	{
-		// 1) use data-dir in PWD if present
-		if(fs_is_dir("data/mapres"))
-		{
-			str_copy(m_aDatadir, "data", sizeof(m_aDatadir));
-			str_copy(m_aBinarydir, "", sizeof(m_aBinarydir));
-			return;
-		}
-
-		// 2) use compiled-in data-dir if present
-		if(fs_is_dir(DATA_DIR "/mapres"))
-		{
-			str_copy(m_aDatadir, DATA_DIR, sizeof(m_aDatadir));
-			str_copy(m_aBinarydir, "", sizeof(m_aBinarydir));
-			return;
-		}
-
-		// 3) check for usable path in argv[0]
-		{
-			unsigned int Pos = ~0U;
-			for(unsigned i = 0; pArgv0[i]; i++)
-				if(pArgv0[i] == '/' || pArgv0[i] == '\\')
-					Pos = i;
-
-			if(Pos < MAX_PATH_LENGTH)
-			{
-				char aBaseDir[MAX_PATH_LENGTH];
-				str_copy(aBaseDir, pArgv0, Pos+1);
-				str_copy(m_aBinarydir, aBaseDir, sizeof(m_aBinarydir));
-				str_format(m_aDatadir, sizeof(m_aDatadir), "%s/data", aBaseDir);
-				str_append(aBaseDir, "/data/mapres", sizeof(aBaseDir));
-
-				if(fs_is_dir(aBaseDir))
-					return;
-				else
-					m_aDatadir[0] = 0;
-			}
-		}
-
-	#if defined(CONF_FAMILY_UNIX)
-		// 4) check for all default locations
-		{
-			const char *aDirs[] = {
-				"/usr/share/teeworlds/data",
-				"/usr/share/games/teeworlds/data",
-				"/usr/local/share/teeworlds/data",
-				"/usr/local/share/games/teeworlds/data",
-				"/usr/pkg/share/teeworlds/data",
-				"/usr/pkg/share/games/teeworlds/data",
-				"/opt/teeworlds/data"
-			};
-			const int DirsCount = sizeof(aDirs) / sizeof(aDirs[0]);
-
-			int i;
-			for (i = 0; i < DirsCount; i++)
-			{
-				char aBuf[128];
-				str_format(aBuf, sizeof(aBuf), "%s/mapres", aDirs[i]);
-				if(fs_is_dir(aBuf))
-				{
-					str_copy(m_aBinarydir, aDirs[i], sizeof(aDirs[i])-5);
-					str_copy(m_aDatadir, aDirs[i], sizeof(m_aDatadir));
-					return;
-				}
-			}
-		}
-	#endif
-
-		// no data-dir found
-		dbg_msg("storage", "warning no data directory found");
+		str_format(m_aDatadir, sizeof(m_aDatadir), "%sdata/ddnet", fatGetDefaultDrive());
+		str_copy(m_aBinarydir, "", sizeof(m_aBinarydir));
 	}
 
 

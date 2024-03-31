@@ -21,6 +21,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <nds.h>
+#include <fat.h>
 
 //the speed of the timer when using ClockDivider_1024
 #define TIMER_SPEED (BUS_CLOCK/1024)
@@ -129,7 +130,8 @@ void dbg_assert_imp(const char *filename, int line, int test, const char *msg)
 
 void dbg_break()
 {
-	*((volatile unsigned*)0) = 0x0;
+	dbg_msg("dbg", "program aborted");
+	while (1) swiWaitForVBlank();
 }
 
 #if !defined(CONF_PLATFORM_MACOSX) && !defined(ARM9)
@@ -342,8 +344,9 @@ static const int MEM_GUARD_VAL = 0xbaadc0de;
 
 void *mem_alloc_debug(const char *filename, int line, unsigned size, unsigned alignment)
 {
-	/* TODO: fix alignment */
-	/* TODO: add debugging */
+	/*
+	// TODO: fix alignment
+	// TODO: add debugging
 	MEMTAIL *tail;
 	MEMHEADER *header = (struct MEMHEADER *)malloc(size+sizeof(MEMHEADER)+sizeof(MEMTAIL));
 	dbg_assert(header != 0, "mem_alloc failure");
@@ -366,20 +369,24 @@ void *mem_alloc_debug(const char *filename, int line, unsigned size, unsigned al
 		first->prev = header;
 	first = header;
 
-	/*dbg_msg("mem", "++ %p", header+1); */
+	//dbg_msg("mem", "++ %p", header+1);
 	return header+1;
+	*/
+	return malloc(size);
 }
 
 void mem_free(void *p)
 {
 	if(p)
 	{
+		free(p);
+		/*
 		MEMHEADER *header = (MEMHEADER *)p - 1;
 		MEMTAIL *tail = (MEMTAIL *)(((char*)(header+1))+header->size);
 
 		if(tail->guard != MEM_GUARD_VAL)
 			dbg_msg("mem", "!! %p", p);
-		/* dbg_msg("mem", "-- %p", p); */
+		// dbg_msg("mem", "-- %p", p);
 		memory_stats.allocated -= header->size;
 		memory_stats.active_allocations--;
 
@@ -391,7 +398,9 @@ void mem_free(void *p)
 			header->next->prev = header->prev;
 
 		free(header);
+		*/
 	}
+	
 }
 
 void mem_debug_dump(IOHANDLE file)
@@ -1757,30 +1766,8 @@ int fs_listdir(const char *dir, FS_LISTDIR_CALLBACK cb, int type, void *user)
 
 int fs_storage_path(const char *appname, char *path, int max)
 {
-#if defined(CONF_FAMILY_WINDOWS)
-	char *home = getenv("APPDATA");
-	if(!home)
-		return -1;
-	_snprintf(path, max, "%s/%s", home, appname);
+	snprintf(path, max, "%sdata/ddnet/user", fatGetDefaultDrive());
 	return 0;
-#else
-	char *home = getenv("HOME");
-#if !defined(CONF_PLATFORM_MACOSX)
-	int i;
-#endif
-	if(!home)
-		return -1;
-
-#if defined(CONF_PLATFORM_MACOSX)
-	snprintf(path, max, "%s/Library/Application Support/%s", home, appname);
-#else
-	snprintf(path, max, "%s/.%s", home, appname);
-	for(i = strlen(home)+2; path[i]; i++)
-		path[i] = tolower(path[i]);
-#endif
-
-	return 0;
-#endif
 }
 
 int fs_makedir(const char *path)

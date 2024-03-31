@@ -2,9 +2,21 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #ifndef ENGINE_CLIENT_H
 #define ENGINE_CLIENT_H
-#include <engine/kernel.h>
+#include "kernel.h"
 
-#include <engine/message.h>
+#include "message.h"
+#include <engine/friends.h>
+#include <engine/shared/config.h>
+#include <versionsrv/versionsrv.h>
+#include <game/generated/protocol.h>
+
+enum
+{
+	RECORDER_MANUAL=0,
+	RECORDER_AUTO=1,
+	RECORDER_RACE=2,
+	RECORDER_MAX=3,
+};
 
 class IClient : public IInterface
 {
@@ -28,6 +40,9 @@ protected:
 	int m_GameTickSpeed;
 public:
 	int m_LocalIDs[2];
+	char m_aNews[NEWS_SIZE];
+
+	CNetObj_PlayerInput m_DummyInput;
 
 	bool m_DummySendConnInfo;
 
@@ -62,12 +77,12 @@ public:
 	inline int State() const { return m_State; }
 
 	// tick time access
-	inline int PrevGameTick() const { return m_PrevGameTick[0]; }
-	inline int GameTick() const { return m_CurGameTick[0]; }
-	inline int PredGameTick() const { return m_PredTick[0]; }
-	inline float IntraGameTick() const { return m_GameIntraTick[0]; }
-	inline float PredIntraGameTick() const { return m_PredIntraTick[0]; }
-	inline float GameTickTime() const { return m_GameTickTime[0]; }
+	inline int PrevGameTick() const { return m_PrevGameTick[g_Config.m_ClDummy]; }
+	inline int GameTick() const { return m_CurGameTick[g_Config.m_ClDummy]; }
+	inline int PredGameTick() const { return m_PredTick[g_Config.m_ClDummy]; }
+	inline float IntraGameTick() const { return m_GameIntraTick[g_Config.m_ClDummy]; }
+	inline float PredIntraGameTick() const { return m_PredIntraTick[g_Config.m_ClDummy]; }
+	inline float GameTickTime() const { return m_GameTickTime[g_Config.m_ClDummy]; }
 	inline int GameTickSpeed() const { return m_GameTickSpeed; }
 
 	// other time access
@@ -78,28 +93,45 @@ public:
 	virtual void Connect(const char *pAddress) = 0;
 	virtual void Disconnect() = 0;
 
+	// dummy
+	virtual void DummyDisconnect(const char *pReason) = 0;
+	virtual void DummyConnect() = 0;
+	virtual bool DummyConnected() = 0;
+	virtual bool DummyConnecting() = 0;
+
+	virtual void Restart() = 0;
+	virtual void Quit() = 0;
+	virtual const char *DemoPlayer_Play(const char *pFilename, int StorageType) = 0;
+	virtual void DemoRecorder_Start(const char *pFilename, bool WithTimestamp, int Recorder) = 0;
+	virtual void DemoRecorder_HandleAutoStart() = 0;
+	virtual void DemoRecorder_Stop(int Recorder) = 0;
+	virtual class IDemoRecorder *DemoRecorder(int Recorder) = 0;
+	virtual void AutoScreenshot_Start() = 0;
+	virtual void AutoStatScreenshot_Start() = 0;
+	virtual void ServerBrowserUpdate() = 0;
+
 	// networking
 	virtual void EnterGame() = 0;
 
 	//
-	//virtual const char *MapDownloadName() = 0;
-	//virtual int MapDownloadAmount() = 0;
-	//virtual int MapDownloadTotalsize() = 0;
+	virtual const char *MapDownloadName() = 0;
+	virtual int MapDownloadAmount() = 0;
+	virtual int MapDownloadTotalsize() = 0;
 
 	// input
-	//virtual int *GetInput(int Tick) = 0;
-	//virtual bool InputExists(int Tick) = 0;
+	virtual int *GetInput(int Tick) = 0;
+	virtual bool InputExists(int Tick) = 0;
 
 	// remote console
-	//virtual void RconAuth(const char *pUsername, const char *pPassword) = 0;
-	//virtual bool RconAuthed() = 0;
-	//virtual bool UseTempRconCommands() = 0;
-	//virtual void Rcon(const char *pLine) = 0;
+	virtual void RconAuth(const char *pUsername, const char *pPassword) = 0;
+	virtual bool RconAuthed() = 0;
+	virtual bool UseTempRconCommands() = 0;
+	virtual void Rcon(const char *pLine) = 0;
 
 	// server info
 	virtual void GetServerInfo(class CServerInfo *pServerInfo) = 0;
 
-	//virtual void CheckVersionUpdate() = 0;
+	virtual void CheckVersionUpdate() = 0;
 
 	// snapshot interface
 
@@ -134,9 +166,12 @@ public:
 	virtual const char *LatestVersion() = 0;
 	virtual bool ConnectionProblems() = 0;
 
+	virtual bool SoundInitFailed() = 0;
+
+	virtual int GetDebugFont() = 0;
+
 	//DDRace
 
-	/*
 	virtual const char* GetCurrentMap() = 0;
 	virtual int GetCurrentMapCrc() = 0;
 	virtual const char* RaceRecordStart(const char *pFilename) = 0;
@@ -149,7 +184,40 @@ public:
 
 	virtual void RequestDDNetSrvList() = 0;
 	virtual bool EditorHasUnsavedData() = 0;
-	*/
+
+	virtual IFriends* Foes() = 0;
 };
 
+class IGameClient : public IInterface
+{
+	MACRO_INTERFACE("gameclient", 0)
+protected:
+public:
+	virtual void OnConsoleInit() = 0;
+
+	virtual void OnRconLine(const char *pLine) = 0;
+	virtual void OnInit() = 0;
+	virtual void OnNewSnapshot() = 0;
+	virtual void OnEnterGame() = 0;
+	virtual void OnShutdown() = 0;
+	virtual void OnRender() = 0;
+	virtual void OnStateChange(int NewState, int OldState) = 0;
+	virtual void OnConnected() = 0;
+	virtual void OnMessage(int MsgID, CUnpacker *pUnpacker, bool IsDummy = 0) = 0;
+	virtual void OnPredict() = 0;
+	virtual void OnActivateEditor() = 0;
+
+	virtual int OnSnapInput(int *pData) = 0;
+	virtual void SendDummyInfo(bool Start) = 0;
+	virtual void ResetDummyInput() = 0;
+	virtual const CNetObj_PlayerInput &getPlayerInput(int dummy) = 0;
+
+	virtual const char *GetItemName(int Type) = 0;
+	virtual const char *Version() = 0;
+	virtual const char *NetVersion() = 0;
+
+	virtual void OnDummyDisconnect() = 0;
+};
+
+extern IGameClient *CreateGameClient();
 #endif

@@ -12,7 +12,7 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # -----------------
 
 SOURCEDIRS	?= arm9/src build/src
-INCLUDEDIRS	?= arm9/src build/src build/src/game
+INCLUDEDIRS	?= arm9/src build/src build/src/game $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/arm-none-eabi/include/freetype2
 GFXDIRS		?=
 BINDIRS		?=
 AUDIODIRS	?=
@@ -25,7 +25,7 @@ DEFINES		?= -DARM9 -D__NDS__ -fpermissive
 # Libraries
 # ---------
 
-LIBS		?= -ldswifi9 -lnds9 -lz
+LIBS		?= -ldswifi9 -lnds9 -lfreetype -lz
 LIBDIRS		+= $(BLOCKSDS)/libs/libnds \
 			   $(BLOCKSDS)/libs/dswifi
 

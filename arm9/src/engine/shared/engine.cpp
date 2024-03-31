@@ -89,6 +89,16 @@ public:
 		if(g_Config.m_Logfile[0])
 			dbg_logger_file(g_Config.m_Logfile);
 	}
+
+	void HostLookup(CHostLookup *pLookup, const char *pHostname, int Nettype)
+	{
+		
+	}
+
+	void AddJob(CJob *pJob, JOBFUNC pfnFunc, void *pData)
+	{
+		
+	}
 };
 
 IEngine *CreateEngine(const char *pAppname) { return new CEngine(pAppname); }
