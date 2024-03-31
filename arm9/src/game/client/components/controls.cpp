@@ -348,8 +348,6 @@ bool CControls::OnMouseMove(float x, float y)
 		(m_pClient->m_Snap.m_SpecInfo.m_Active && m_pClient->m_pChat->IsActive()))
 		return false;
 
-#if defined(__ANDROID__) // No relative mouse on Android
-	// We're using joystick on Android, mouse is disabled
 	if( m_OldMouseX != x || m_OldMouseY != y )
 	{
 		m_OldMouseX = x;
@@ -357,10 +355,6 @@ bool CControls::OnMouseMove(float x, float y)
 		m_MousePos[g_Config.m_ClDummy] = vec2((x - g_Config.m_GfxScreenWidth/2), (y - g_Config.m_GfxScreenHeight/2));
 		ClampMousePos();
 	}
-#else
-	m_MousePos[g_Config.m_ClDummy] += vec2(x, y); // TODO: ugly
-	ClampMousePos();
-#endif
 
 	return true;
 }
