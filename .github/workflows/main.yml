@@ -18,8 +18,8 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install zlib
-      run: yes | wf-pacman -S toolchain-gcc-arm-none-eabi-zlib
+    - name: Install dependencies
+      run: yes | wf-pacman -S toolchain-gcc-arm-none-eabi-zlib toolchain-gcc-arm-none-eabi-freetype
 
     - name: Make
       run: |
