@@ -215,16 +215,6 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 	char *msg;
 	int len;
 
-	//str_format(str, sizeof(str), "[%08x][%s]: ", (int)time(0), sys);
-	time_t rawtime;
-	struct tm* timeinfo;
-	char timestr [80];
-
-	time ( &rawtime );
-	timeinfo = localtime ( &rawtime );
-
-	strftime (timestr,sizeof(timestr),"%y-%m-%d %H:%M:%S",timeinfo);
-
 #if !defined(CONF_PLATFORM_MACOSX) && !defined(ARM9)
 	if(dbg_msg_threaded)
 	{
@@ -233,7 +223,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 		semaphore_wait(&log_queue.mutex);
 		e = queue_empty(&log_queue);
 
-		str_format(log_queue.q[log_queue.end], sizeof(log_queue.q[log_queue.end]), "[%s][%s]: ", timestr, sys);
+		str_format(log_queue.q[log_queue.end], sizeof(log_queue.q[log_queue.end]), "[%s]: ", sys);
 
 		len = strlen(log_queue.q[log_queue.end]);
 		msg = (char *)log_queue.q[log_queue.end] + len;
@@ -262,7 +252,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 		char str[1024*4];
 		int i;
 
-		str_format(str, sizeof(str), "[%s][%s]: ", timestr, sys);
+		str_format(str, sizeof(str), "[%s]: ", sys);
 
 		len = strlen(str);
 		msg = (char *)str + len;
