@@ -11,8 +11,8 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # Source code paths
 # -----------------
 
-SOURCEDIRS	?= arm7/source
-INCLUDEDIRS	?=
+SOURCEDIRS	?= common/helix arm7/source
+INCLUDEDIRS	?= common common/helix common/helix/real
 BINDIRS		?=
 
 # Defines passed to all files
@@ -70,7 +70,7 @@ SOURCES_CPP	:= $(shell find -L $(SOURCEDIRS) -name "*.cpp")
 # Compiler and linker flags
 # -------------------------
 
-ARCH		:= -mthumb -mcpu=arm7tdmi
+ARCH		:= -mthumb-interwork -mcpu=arm7tdmi
 
 SPECS		:= $(BLOCKSDS)/sys/crts/ds_arm7.specs
 

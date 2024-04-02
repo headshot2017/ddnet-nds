@@ -10,6 +10,7 @@
 #include <dswifi7.h>
 #include <nds.h>
 //#include <maxmod7.h>
+#include <mp3_shared.h>
 
 volatile bool exit_loop = false;
 
@@ -52,6 +53,8 @@ int main(int argc, char *argv[])
     // Initialize Maxmod. It uses timer 0 internally.
     //mmInstall(FIFO_MAXMOD);
 
+	mp3_init();
+
     // This sets a callback that is called when the power button in a DSi
     // console is pressed. It has no effect in a DS.
     setPowerButtonCB(power_button_callback);
@@ -66,6 +69,8 @@ int main(int argc, char *argv[])
 
     while (!exit_loop)
     {
+		mp3_process();
+
         const uint16_t key_mask = KEY_SELECT | KEY_START | KEY_L | KEY_R;
         uint16_t keys_pressed = ~REG_KEYINPUT;
 

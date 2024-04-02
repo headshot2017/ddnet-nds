@@ -11,8 +11,8 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 # Source code paths
 # -----------------
 
-SOURCEDIRS	?= arm9/src build/src
-INCLUDEDIRS	?= arm9/src build/src build/src/game $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/arm-none-eabi/include/freetype2
+SOURCEDIRS	?= common/helix arm9/src build/src
+INCLUDEDIRS	?= common common/helix common/helix/real arm9/src build/src build/src/game $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/arm-none-eabi/include/freetype2
 GFXDIRS		?=
 BINDIRS		?=
 AUDIODIRS	?=

@@ -16,6 +16,8 @@ extern "C" { // wavpack
 	#include <engine/external/wavpack/wavpack.h>
 	//#include <opusfile.h>
 }
+#include <mp3_shared.h>
+
 #include <math.h>
 
 enum
@@ -112,6 +114,9 @@ int CSound::Init()
 
 	m_SoundEnabled = 1;
 	Update(); // update the volume
+
+	mp3_init();
+
 	return 0;
 }
 
@@ -127,6 +132,8 @@ int CSound::Update()
 	{
 		m_SoundVolume = WantedVolume;
 	}
+
+	mp3_fill_buffer();
 
 	return 0;
 }

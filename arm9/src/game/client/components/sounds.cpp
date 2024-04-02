@@ -6,11 +6,15 @@
 #include <engine/engine.h>
 #include <engine/sound.h>
 #include <engine/shared/config.h>
+#include <engine/storage.h>
 #include <game/generated/client_data.h>
 #include <game/client/gameclient.h>
 #include <game/client/components/camera.h>
 #include <game/client/components/menus.h>
 #include "sounds.h"
+
+#include <nds.h>
+#include <mp3_shared.h>
 
 
 struct CUserData
@@ -95,6 +99,8 @@ void CSounds::OnInit()
 
 void CSounds::OnReset()
 {
+	mp3_stop();
+
 	if(Client()->State() >= IClient::STATE_ONLINE)
 	{
 		Sound()->StopAll();
@@ -178,6 +184,9 @@ void CSounds::Play(int Chn, int SetId, float Vol)
 	if(Chn == CHN_MUSIC && !g_Config.m_SndMusic)
 		return;
 
+	if (Chn == CHN_MUSIC)
+		mp3_play("/data/ddnet/audio/music_menu.mp3", 1, 0);
+
 	int SampleId = GetSampleId(SetId);
 	if(SampleId == -1)
 		return;
@@ -193,6 +202,9 @@ void CSounds::PlayAt(int Chn, int SetId, float Vol, vec2 Pos)
 {
 	if(Chn == CHN_MUSIC && !g_Config.m_SndMusic)
 		return;
+
+	if (Chn == CHN_MUSIC)
+		mp3_play("/data/ddnet/audio/music_menu.mp3", 1, 0);
 
 	int SampleId = GetSampleId(SetId);
 	if(SampleId == -1)
@@ -222,7 +234,7 @@ ISound::CVoiceHandle CSounds::PlaySample(int Chn, int SampleId, float Vol, int F
 		return ISound::CVoiceHandle();
 
 	if(Chn == CHN_MUSIC)
-		Flags |= ISound::FLAG_LOOP;
+		mp3_play("/data/ddnet/audio/music_menu.mp3", 1, 0);
 
 	return Sound()->Play(Chn, SampleId, Flags);
 }
@@ -233,7 +245,7 @@ ISound::CVoiceHandle CSounds::PlaySampleAt(int Chn, int SampleId, float Vol, vec
 		return ISound::CVoiceHandle();
 
 	if(Chn == CHN_MUSIC)
-		Flags |= ISound::FLAG_LOOP;
+		mp3_play("/data/ddnet/audio/music_menu.mp3", 1, 0);
 
 	return Sound()->PlayAt(Chn, SampleId, Flags, Pos.x, Pos.y);
 }
