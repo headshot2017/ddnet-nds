@@ -183,7 +183,7 @@ void CGraphics_NDS::MapScreen(float TopLeftX, float TopLeftY, float BottomRightX
 	m_ScreenY1 = BottomRightY;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(TopLeftX, BottomRightX, BottomRightY, TopLeftY, -10.0f, 100.f);
+	glOrtho(TopLeftX, BottomRightX-16, BottomRightY-16, TopLeftY, -10.0f, 100.f);
 }
 
 void CGraphics_NDS::GetScreen(float *pTopLeftX, float *pTopLeftY, float *pBottomRightX, float *pBottomRightY)
@@ -749,8 +749,8 @@ int CGraphics_NDS::Init()
 
 	glAlphaFunc(7);
 	glEnable(GL_ALPHA_TEST);
-	glEnable(GL_ANTIALIAS);
-	glClearPolyID(63);
+	//glEnable(GL_ANTIALIAS);
+	//glClearPolyID(63);
 
 	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 
