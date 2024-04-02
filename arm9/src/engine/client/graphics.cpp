@@ -29,29 +29,24 @@ void CGraphics_NDS::Flush()
 
 	if(m_RenderEnable)
 	{
-		if(m_Drawing == DRAWING_QUADS)
+		glBegin((g_Config.m_GfxQuadAsTriangle) ? GL_TRIANGLES : GL_QUADS);
+
+		for (int i=0; i<m_NumVertices; i++)
 		{
-			glBegin((g_Config.m_GfxQuadAsTriangle) ? GL_TRIANGLES : GL_QUADS);
+			int r = m_aVertices[i].m_Color.r*255;
+			int g = m_aVertices[i].m_Color.g*255;
+			int b = m_aVertices[i].m_Color.b*255;
 
-			for (int i=0; i<m_NumVertices; i++)
-			{
-				int r = m_aVertices[i].m_Color.r*255;
-				int g = m_aVertices[i].m_Color.g*255;
-				int b = m_aVertices[i].m_Color.b*255;
+			int x = floattov16(m_aVertices[i].m_Pos.x / SCALE_VERTICES);
+			int y = floattov16(m_aVertices[i].m_Pos.y / SCALE_VERTICES);
+			int z = floattov16(m_aVertices[i].m_Pos.z / SCALE_VERTICES);
 
-				int x = floattov16(m_aVertices[i].m_Pos.x / SCALE_VERTICES);
-				int y = floattov16(m_aVertices[i].m_Pos.y / SCALE_VERTICES);
-				int z = floattov16(m_aVertices[i].m_Pos.z / SCALE_VERTICES);
+			int u = floattof32(m_aVertices[i].m_Tex.u);
+			int v = floattof32(m_aVertices[i].m_Tex.v);
 
-				int u = floattof32(m_aVertices[i].m_Tex.u);
-				int v = floattof32(m_aVertices[i].m_Tex.v);
-
-				glColor3b(r, g, b);
-				if (m_CurrTexture != -1) glTexCoord2f32(u, v);
-				glVertex3v16(x, y, z);
-			}
-
-			glEnd();
+			glColor3b(r, g, b);
+			if (m_CurrTexture != -1) glTexCoord2f32(u, v);
+			glVertex3v16(x, y, z);
 		}
 	}
 
@@ -249,16 +244,18 @@ int CGraphics_NDS::UnloadTexture(int Index)
 }
 
 #define ALPHA_to_DS(src) \
-	(255 >> 3) | (255 << 2) | (255 << 7) | ((src[0] & 0x80) << 8)
+	((src[0] & 0xF8) >> 3) | ((src[0] & 0xF8) << 2) | ((src[0] & 0xF8) << 7) | ((src[0] & 0x80) << 8)
 
 #define RGBA8_to_DS(src) \
 	((src[0] & 0xF8) >> 3) | ((src[1] & 0xF8) << 2) | ((src[2] & 0xF8) << 7) | ((src[3] & 0x80) << 8)
 
 static void ConvertTexture(u16* dst, const u8* src, int w, int h, int StoreFormat)
 {
+	int add = (StoreFormat == CImageInfo::FORMAT_ALPHA) ? 1 : 4;
+
 	for (int y = 0; y < h; y++)
 	{
-		for (int x = 0; x < w; x++, src += 4)
+		for (int x = 0; x < w; x++, src += add)
 		{
 			if (StoreFormat == CImageInfo::FORMAT_ALPHA)
 				*dst++ = ALPHA_to_DS(src);
@@ -272,12 +269,9 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 {
     glBindTexture(GL_TEXTURE_2D, m_aTextures[TextureID].m_Tex);
     
-    int width = 0;
-    glGetInt(GL_GET_TEXTURE_WIDTH,  &width);
+    int texWidth = 0;
+    glGetInt(GL_GET_TEXTURE_WIDTH,  &texWidth);
     u16* vram_ptr = (u16*)glGetTexturePointer(m_aTextures[TextureID].m_Tex);
-
-    // TODO doesn't work without VRAM bank changing to LCD and back maybe??
-    // (see what glTeximage2D does ??)
 
 	u32 oldCr = VRAM_CR;
 	if (vram_ptr >= VRAM_D) vramSetBankD(VRAM_D_LCD);
@@ -289,15 +283,15 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 
     for (int yy = 0; yy < Height; yy++)
 	{
-		u16* dst = vram_ptr + width * (y + yy) + x;
+		u16* dst = vram_ptr + texWidth * (y + yy) + x;
 		u8* src  = ((u8*)pData) + Width * yy;
 		
-		for (int xx = 0; xx < Width; xx++, src += add)
+		for (int xx = 0; xx < Width; xx++, src += add, dst++)
 		{
 			if (Format == CImageInfo::FORMAT_ALPHA)
-				*dst++ = ALPHA_to_DS(src);
+				*dst = ALPHA_to_DS(src);
 			else
-				*dst++ = RGBA8_to_DS(src);
+				*dst = RGBA8_to_DS(src);
 		}
 	}
 
@@ -438,6 +432,7 @@ void CGraphics_NDS::TextureSet(int TextureID)
 	m_CurrTexture = TextureID;
 	if(TextureID == -1)
 	{
+		glBindTexture(GL_TEXTURE_2D, -1);
 		glDisable(GL_TEXTURE_2D);
 	}
 	else
@@ -754,6 +749,8 @@ int CGraphics_NDS::Init()
 
 	glAlphaFunc(7);
 	glEnable(GL_ALPHA_TEST);
+	glEnable(GL_ANTIALIAS);
+	glClearPolyID(63);
 
 	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
 
