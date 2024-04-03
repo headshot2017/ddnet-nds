@@ -19,7 +19,7 @@
 
 #include "graphics.h"
 
-#define GL_MAX_TEXTURE_SIZE 256
+#define GL_MAX_TEXTURE_SIZE 128
 #define SCALE_VERTICES 1024
 
 void CGraphics_NDS::Flush()
@@ -183,7 +183,7 @@ void CGraphics_NDS::MapScreen(float TopLeftX, float TopLeftY, float BottomRightX
 	m_ScreenY1 = BottomRightY;
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(TopLeftX, BottomRightX-16, BottomRightY-16, TopLeftY, -10.0f, 100.f);
+	glOrtho(m_ScreenX0, m_ScreenX1, m_ScreenY1, m_ScreenY0, -10.0f, 100.f);
 }
 
 void CGraphics_NDS::GetScreen(float *pTopLeftX, float *pTopLeftY, float *pBottomRightX, float *pBottomRightY)
@@ -302,13 +302,11 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 
 int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void *pData, int StoreFormat, int Flags)
 {
-	u16 *pTmpData = (u16*)mem_alloc(Width * Height * 2, 1);
-	DC_FlushRange(pTmpData, Width * Height * 2);
+	u8* pTexData = (u8*)pData;
+	u8* pTmpData = 0;
 
 	int StoreOglformat = 0;
 	int Tex = 0;
-
-	ConvertTexture(pTmpData, (u8*)pData, Width, Height, StoreFormat);
 
 	// don't waste memory on texture if we are stress testing
 	if(g_Config.m_DbgStress)
@@ -319,6 +317,30 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	m_FirstFreeTexture = m_aTextures[Tex].m_Next;
 	m_aTextures[Tex].m_Next = -1;
 
+	if(!(Flags&TEXLOAD_NORESAMPLE) && (Format == CImageInfo::FORMAT_RGBA || Format == CImageInfo::FORMAT_RGB))
+	{
+		if(Width > GL_MAX_TEXTURE_SIZE || Height > GL_MAX_TEXTURE_SIZE)
+		{
+			int NewWidth = min(Width, GL_MAX_TEXTURE_SIZE);
+			int NewHeight = min(Height, GL_MAX_TEXTURE_SIZE);
+			pTmpData = Rescale(Width, Height, NewWidth, NewHeight, Format, pTexData);
+			pTexData = pTmpData;
+			Width = NewWidth;
+			Height = NewHeight;
+		}
+		else if(Width > 16 && Height > 16 && g_Config.m_GfxTextureQuality == 0)
+		{
+			pTmpData = Rescale(Width, Height, Width/2, Height/2, Format, pTexData);
+			pTexData = pTmpData;
+			Width /= 2;
+			Height /= 2;
+		}
+	}
+
+	u16* pFinalData = (u16*)mem_alloc(Width * Height * 2, 1);
+	ConvertTexture(pFinalData, pTexData, Width, Height, StoreFormat);
+	if (pTmpData) mem_free(pTmpData);
+
 	// upload texture
 	StoreOglformat = GL_RGBA;
 	if(StoreFormat == CImageInfo::FORMAT_RGB)
@@ -327,10 +349,11 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	glGenTextures(1, &m_aTextures[Tex].m_Tex);
 	glBindTexture(GL_TEXTURE_2D, m_aTextures[Tex].m_Tex);
 
-	if (!glTexImage2D(GL_TEXTURE_2D, 0, StoreOglformat, Width, Height, 0, TEXGEN_TEXCOORD, pTmpData))
+	if (!glTexImage2D(GL_TEXTURE_2D, 0, StoreOglformat, Width, Height, 0, TEXGEN_TEXCOORD, pFinalData))
 	{
-		mem_free(pTmpData);
-		return 0;
+		printf("FAILED TEXIMAGE2D %d %d %s\n", Width, Height, pTmpData?"true":"false");
+		if (pFinalData) mem_free(pFinalData);
+		return m_InvalidTexture;
 	}
 
 	// calculate memory usage
@@ -345,7 +368,6 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	}
 
 	m_TextureMemoryUsage += m_aTextures[Tex].m_MemSize;
-	mem_free(pTmpData);
 	return Tex;
 }
 
@@ -357,7 +379,7 @@ int CGraphics_NDS::LoadTexture(const char *pFilename, int StorageType, int Store
 	CImageInfo Img;
 
 	if(l < 3)
-		return -1;
+		return m_InvalidTexture;
 	if(LoadPNG(&Img, pFilename, StorageType))
 	{
 		if (StoreFormat == CImageInfo::FORMAT_AUTO)
