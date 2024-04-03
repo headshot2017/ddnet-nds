@@ -10,10 +10,10 @@ BLOCKSDSEXT	?= /opt/blocksds/external
 
 NAME		?= ddnet-nds
 
-GAME_TITLE	?= Teeworlds NDS
+GAME_TITLE	?= DDNet Client NDS
 GAME_SUBTITLE	?= Built with BlocksDS
 GAME_AUTHOR	?= github.com/blocksds/sdk
-GAME_ICON	?= $(BLOCKSDS)/sys/icon.bmp
+GAME_ICON	?= icon.bmp
 
 # DLDI and internal SD slot of DSi
 # --------------------------------
