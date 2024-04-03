@@ -111,14 +111,45 @@ int CInput::Update()
 
 	{
 		scanKeys();
-		int held = keysHeld();
 
-		m_aInputState[m_InputCurrent][KEY_a] = !!(held & KEY_LEFT);
-		m_aInputState[m_InputCurrent][KEY_d] = !!(held & KEY_RIGHT);
-		m_aInputState[m_InputCurrent][KEY_SPACE] = !!(held & KEY_B);
-		m_aInputState[m_InputCurrent][KEY_MOUSE_1] = !!(held & KEY_TOUCH) || !!(held & KEY_Y);
-		m_aInputState[m_InputCurrent][KEY_MOUSE_2] = !!(held & KEY_L);
-		m_aInputState[m_InputCurrent][KEY_ESCAPE] = !!(held & KEY_START);
+		int down = keysDown();
+		int Key = -1;
+		int Action = IInput::FLAG_PRESS;
+
+		if (down & KEY_LEFT) Key = KEY_a;
+		if (down & KEY_RIGHT) Key = KEY_d;
+		if (down & KEY_A) Key = KEY_RETURN;
+		if (down & KEY_B) Key = KEY_SPACE;
+		if (down & KEY_TOUCH || down & KEY_Y) Key = KEY_MOUSE_1;
+		if (down & KEY_L) Key = KEY_MOUSE_2;
+		if (down & KEY_R) Key = KEY_MOUSE_WHEEL_DOWN;
+		if (down & KEY_START) Key = KEY_ESCAPE;
+
+		if(Key != -1)
+		{
+			m_aInputCount[m_InputCurrent][Key].m_Presses++;
+			m_aInputState[m_InputCurrent][Key] = 1;
+			AddEvent(0, Key, Action);
+		}
+
+		int up = keysUp();
+		Key = -1;
+		Action = IInput::FLAG_RELEASE;
+
+		if (up & KEY_LEFT) Key = KEY_a;
+		if (up & KEY_RIGHT) Key = KEY_d;
+		if (up & KEY_A) Key = KEY_RETURN;
+		if (up & KEY_B) Key = KEY_SPACE;
+		if (up & KEY_TOUCH || up & KEY_Y) Key = KEY_MOUSE_1;
+		if (up & KEY_L) Key = KEY_MOUSE_2;
+		if (up & KEY_R) Key = KEY_MOUSE_WHEEL_DOWN;
+		if (up & KEY_START) Key = KEY_ESCAPE;
+
+		if(Key != -1)
+		{
+			m_aInputCount[m_InputCurrent][Key].m_Presses++;
+			AddEvent(0, Key, Action);
+		}
 	}
 
 	/*
