@@ -3,6 +3,7 @@
 #include <base/system.h>
 #include <base/math.h>
 #include <engine/graphics.h>
+#include <engine/client.h>
 #include <engine/textrender.h>
 
 #ifdef CONF_FAMILY_WINDOWS
@@ -71,7 +72,9 @@ public:
 class CTextRender : public IEngineTextRender
 {
 	IGraphics *m_pGraphics;
+	IClient *m_pClient;
 	IGraphics *Graphics() { return m_pGraphics; }
+	IClient *Client() { return m_pClient; }
 
 	int WordLength(const char *pText)
 	{
@@ -437,6 +440,7 @@ public:
 	CTextRender()
 	{
 		m_pGraphics = 0;
+		m_pClient = 0;
 
 		m_TextR = 1.0f;
 		m_TextG = 1.0f;
@@ -456,12 +460,14 @@ public:
 	virtual void Init()
 	{
 		m_pGraphics = Kernel()->RequestInterface<IGraphics>();
-		FT_Init_FreeType(&m_FTLibrary);
+		m_pClient = Kernel()->RequestInterface<IClient>();
+		//FT_Init_FreeType(&m_FTLibrary);
 	}
 
 
 	virtual CFont *LoadFont(const char *pFilename)
 	{
+		/*
 		CFont *pFont = (CFont *)mem_alloc(sizeof(CFont), 1);
 
 		mem_zero(pFont, sizeof(*pFont));
@@ -478,11 +484,12 @@ public:
 
 		dbg_msg("textrender", "loaded pFont from '%s'", pFilename);
 		return pFont;
+		*/
 	};
 
 	virtual void DestroyFont(CFont *pFont)
 	{
-		mem_free(pFont);
+		//mem_free(pFont);
 	}
 
 	virtual void SetDefaultFont(CFont *pFont)
@@ -583,27 +590,26 @@ public:
 		ActualSize = (int)(Size * FakeToScreenY);
 		Size = ActualSize / FakeToScreenY;
 
-		// fetch pFont data
-		if(!pFont)
-			pFont = m_pDefaultFont;
+		//pSizeData = GetSize(pFont, ActualSize);
+		//RenderSetup(pFont, ActualSize);
 
-		if(!pFont)
-			return;
-
-		pSizeData = GetSize(pFont, ActualSize);
-		RenderSetup(pFont, ActualSize);
-
-		float Scale = 1/pSizeData->m_FontSize;
+		//float Scale = 1/pSizeData->m_FontSize;
+		float Scale = 1;
 
 		// set length
 		if(Length < 0)
 			Length = str_length(pText);
 
-		// if we don't want to render, we can just skip the first outline pass
-		i = 1;
-		if(pCursor->m_Flags&TEXTFLAG_RENDER)
-			i = 0;
+		if(!(pCursor->m_Flags&TEXTFLAG_RENDER))
+			return;
 
+		Graphics()->TextureSet(Client()->GetDebugFont());
+		Graphics()->QuadsBegin();
+		Graphics()->SetColor(m_TextR, m_TextG, m_TextB, m_TextA);
+		Graphics()->QuadsText(CursorX, CursorY, Size, pText);
+		Graphics()->QuadsEnd();
+
+		/*
 		for(;i < 2; i++)
 		{
 			const char *pCurrent = (char *)pText;
@@ -730,6 +736,7 @@ public:
 
 		if(GotNewLine)
 			pCursor->m_Y = DrawY;
+		*/
 	}
 
 };
