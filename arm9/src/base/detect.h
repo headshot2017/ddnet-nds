@@ -86,6 +86,10 @@
 	#define CONF_PLATFORM_STRING "beos"
 #endif
 
+#if defined(__NDS__) || defined(__NINTENDODS__)
+	#define CONF_FAMILY_STRING "nintendo"
+	#define CONF_PLATFORM_STRING "ds"
+#endif
 
 /* use gcc endianness definitions when available */
 #if defined(__GNUC__) && !defined(__APPLE__) && !defined(__MINGW32__) && !defined(__sun)
