@@ -13,7 +13,7 @@ NAME		?= ddnet-nds
 GAME_TITLE	?= DDNet Client NDS
 GAME_SUBTITLE	?= Built with BlocksDS
 GAME_AUTHOR	?= github.com/blocksds/sdk
-GAME_ICON	?= icon.bmp
+GAME_ICON	?= icon.png
 
 # DLDI and internal SD slot of DSi
 # --------------------------------
