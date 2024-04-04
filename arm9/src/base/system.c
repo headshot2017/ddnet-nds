@@ -17,7 +17,7 @@
 	#include "engine/shared/websockets.h"
 #endif
 
-#ifdef ARM9
+#ifdef __NDS__
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <nds.h>
@@ -39,7 +39,7 @@ struct addrinfo {
            };
 #endif
 
-#if defined(CONF_FAMILY_UNIX) || defined(ARM9)
+#if defined(CONF_FAMILY_UNIX) || defined(__NDS__)
 	#include <sys/time.h>
 	#include <unistd.h>
 
@@ -134,7 +134,7 @@ void dbg_break()
 	while (1) swiWaitForVBlank();
 }
 
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(ARM9)
+#if !defined(CONF_PLATFORM_MACOSX) && !defined(__NDS__)
 #define QUEUE_SIZE 16
 
 typedef struct
@@ -215,7 +215,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 	char *msg;
 	int len;
 
-#if !defined(CONF_PLATFORM_MACOSX) && !defined(ARM9)
+#if !defined(CONF_PLATFORM_MACOSX) && !defined(__NDS__)
 	if(dbg_msg_threaded)
 	{
 		int e;
@@ -273,7 +273,7 @@ void dbg_msg(const char *sys, const char *fmt, ...)
 static void logger_stdout(const char *line)
 {
 	printf("%s\n", line);
-#ifdef ARM9
+#ifdef __NDS__
 	swiWaitForVBlank();
 #else
 	fflush(stdout);
@@ -529,6 +529,21 @@ int io_flush(IOHANDLE io)
 	return 0;
 }
 
+#ifdef __NDS__
+struct thread_data
+{
+	void (*threadfunc)(void *);
+	void *u;
+};
+
+int thread_mainfunc(void* userdata)
+{
+	struct thread_data* d = (struct thread_data*)userdata;
+	d->threadfunc(d->u);
+	return 0;
+}
+#endif
+
 void *thread_init(void (*threadfunc)(void *), void *u)
 {
 #if defined(CONF_FAMILY_UNIX)
@@ -537,8 +552,11 @@ void *thread_init(void (*threadfunc)(void *), void *u)
 	return (void*)id;
 #elif defined(CONF_FAMILY_WINDOWS)
 	return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadfunc, u, 0, NULL);
-#elif defined(ARM9)
-	return 0;
+#elif defined(__NDS__)
+	cothread_t* id = (cothread_t*)mem_alloc(sizeof(cothread_t), 1);
+	struct thread_data d = {threadfunc, u};
+	*id = cothread_create(thread_mainfunc, (void*)&d, 0, 0);
+	return (void*)id;
 #else
 	#error not implemented
 #endif
@@ -550,8 +568,10 @@ void thread_wait(void *thread)
 	pthread_join((pthread_t)thread, NULL);
 #elif defined(CONF_FAMILY_WINDOWS)
 	WaitForSingleObject((HANDLE)thread, INFINITE);
-#elif defined(ARM9)
-	return;
+#elif defined(__NDS__)
+	cothread_t* id = (cothread_t*)thread;
+	while (!cothread_has_joined(*id) || errno);
+	if (errno) errno = 0;
 #else
 	#error not implemented
 #endif
@@ -562,6 +582,12 @@ void thread_destroy(void *thread)
 #if defined(CONF_FAMILY_UNIX)
 	void *r = 0;
 	pthread_join((pthread_t)thread, &r);
+#elif defined(__NDS__)
+	cothread_t* id = (cothread_t*)thread;
+	while (!cothread_has_joined(*id) || errno);
+	if (errno) errno = 0;
+	cothread_delete(*id);
+	mem_free(id);
 #else
 	/*#error not implemented*/
 #endif
@@ -573,8 +599,8 @@ void thread_yield()
 	sched_yield();
 #elif defined(CONF_FAMILY_WINDOWS)
 	Sleep(0);
-#elif defined(ARM9)
-	return;
+#elif defined(__NDS__)
+	cothread_yield();
 #else
 	#error not implemented
 #endif
@@ -586,7 +612,15 @@ void thread_sleep(int milliseconds)
 	usleep(milliseconds*1000);
 #elif defined(CONF_FAMILY_WINDOWS)
 	Sleep(milliseconds);
-#elif defined(ARM9)
+#elif defined(__NDS__)
+	timerStop(1);
+	timerStart(1, ClockDivider_1024, 0, NULL);
+	int ms = 0;
+	while (ms < milliseconds)
+	{
+		u32 ticks = timerElapsed(1);
+		ms += (int)(ticks/(float)TIMER_SPEED*1000);
+	}
 	return;
 #else
 	#error not implemented
@@ -599,8 +633,9 @@ void thread_detach(void *thread)
 	pthread_detach((pthread_t)(thread));
 #elif defined(CONF_FAMILY_WINDOWS)
 	CloseHandle(thread);
-#elif defined(ARM9)
-	return;
+#elif defined(__NDS__)
+	cothread_t* id = (cothread_t*)thread;
+	cothread_detach(*id);
 #else
 	#error not implemented
 #endif
@@ -613,11 +648,12 @@ void thread_detach(void *thread)
 typedef pthread_mutex_t LOCKINTERNAL;
 #elif defined(CONF_FAMILY_WINDOWS)
 typedef CRITICAL_SECTION LOCKINTERNAL;
-#elif !defined(ARM9)
+#elif defined(__NDS__)
+typedef comutex_t LOCKINTERNAL;
+#else
 	#error not implemented on this platform
 #endif
 
-#if !defined(ARM9)
 LOCK lock_create()
 {
 	LOCKINTERNAL *lock = (LOCKINTERNAL*)mem_alloc(sizeof(LOCKINTERNAL), 4);
@@ -626,6 +662,8 @@ LOCK lock_create()
 	pthread_mutex_init(lock, 0x0);
 #elif defined(CONF_FAMILY_WINDOWS)
 	InitializeCriticalSection((LPCRITICAL_SECTION)lock);
+#elif defined(__NDS__)
+	comutex_init((comutex_t*)lock);
 #else
 	#error not implemented on this platform
 #endif
@@ -638,6 +676,8 @@ void lock_destroy(LOCK lock)
 	pthread_mutex_destroy((LOCKINTERNAL *)lock);
 #elif defined(CONF_FAMILY_WINDOWS)
 	DeleteCriticalSection((LPCRITICAL_SECTION)lock);
+#elif defined(__NDS__)
+	comutex_release((comutex_t*)lock);
 #else
 	#error not implemented on this platform
 #endif
@@ -650,6 +690,8 @@ int lock_trylock(LOCK lock)
 	return pthread_mutex_trylock((LOCKINTERNAL *)lock);
 #elif defined(CONF_FAMILY_WINDOWS)
 	return !TryEnterCriticalSection((LPCRITICAL_SECTION)lock);
+#elif defined(__NDS__)
+	return !comutex_try_acquire((comutex_t*)lock);
 #else
 	#error not implemented on this platform
 #endif
@@ -661,6 +703,8 @@ void lock_wait(LOCK lock)
 	pthread_mutex_lock((LOCKINTERNAL *)lock);
 #elif defined(CONF_FAMILY_WINDOWS)
 	EnterCriticalSection((LPCRITICAL_SECTION)lock);
+#elif defined(__NDS__)
+	comutex_acquire((comutex_t*)lock);
 #else
 	#error not implemented on this platform
 #endif
@@ -672,6 +716,8 @@ void lock_unlock(LOCK lock)
 	pthread_mutex_unlock((LOCKINTERNAL *)lock);
 #elif defined(CONF_FAMILY_WINDOWS)
 	LeaveCriticalSection((LPCRITICAL_SECTION)lock);
+#elif defined(__NDS__)
+	comutex_release((comutex_t*)lock);
 #else
 	#error not implemented on this platform
 #endif
@@ -689,11 +735,13 @@ void lock_unlock(LOCK lock)
 	void semaphore_signal(SEMAPHORE *sem) { ReleaseSemaphore((HANDLE)*sem, 1, NULL); }
 	void semaphore_destroy(SEMAPHORE *sem) { CloseHandle((HANDLE)*sem); }
 	#else
-		#error not implemented on this platform
+	void semaphore_init(SEMAPHORE *sem) { }
+	void semaphore_wait(SEMAPHORE *sem) { }
+	void semaphore_signal(SEMAPHORE *sem) { }
+	void semaphore_destroy(SEMAPHORE *sem) { }
+		#warning not implemented on this platform
 	#endif
 #endif
-
-#endif // #if !defined(ARM9)
 
 static int new_tick = -1;
 
@@ -716,7 +764,7 @@ int64 time_get()
 	gettimeofday(&val, NULL);
 	last = (int64)val.tv_sec*(int64)1000000+(int64)val.tv_usec;
 	return last;
-#elif defined(ARM9)
+#elif defined(__NDS__)
 	static int64 ticks = 0;
 	if (last == 0 && ticks == 0)
 		timerStart(0, ClockDivider_1024, 0, NULL);
@@ -741,7 +789,7 @@ int64 time_freq()
 {
 #if defined(CONF_FAMILY_UNIX)
 	return 1000000;
-#elif defined (ARM9)
+#elif defined (__NDS__)
 	return 1000;
 #elif defined(CONF_FAMILY_WINDOWS)
 	int64 t;
@@ -767,7 +815,7 @@ static void netaddr_to_sockaddr_in(const NETADDR *src, struct sockaddr_in *dest)
 	mem_copy(&dest->sin_addr.s_addr, src->ip, 4);
 }
 
-#ifndef ARM9
+#ifndef __NDS__
 static void netaddr_to_sockaddr_in6(const NETADDR *src, struct sockaddr_in6 *dest)
 {
 	mem_zero(dest, sizeof(struct sockaddr_in6));
@@ -799,7 +847,7 @@ static void sockaddr_to_netaddr(const struct sockaddr *src, NETADDR *dst)
 		dst->port = htons(((struct sockaddr_in*)src)->sin_port);
 		mem_copy(dst->ip, &((struct sockaddr_in*)src)->sin_addr.s_addr, 4);
 	}
-#ifndef ARM9
+#ifndef __NDS__
 	else if(src->sa_family == AF_INET6)
 	{
 		mem_zero(dst, sizeof(NETADDR));
@@ -881,7 +929,7 @@ static int priv_net_extract(const char *hostname, char *host, int max_host, int 
 
 int net_host_lookup(const char *hostname, NETADDR *addr, int types)
 {
-#ifndef ARM9
+#ifndef __NDS__
 	struct addrinfo hints;
 	struct addrinfo *result = NULL;
 	int e;
@@ -894,7 +942,7 @@ int net_host_lookup(const char *hostname, NETADDR *addr, int types)
 
 	dbg_msg("host lookup", "host='%s' port=%d %d", host, port, types);
 
-#ifndef ARM9
+#ifndef __NDS__
 	mem_zero(&hints, sizeof(hints));
 
 	hints.ai_family = AF_UNSPEC;
@@ -982,7 +1030,7 @@ int net_addr_from_str(NETADDR *addr, const char *string)
 	const char *str = string;
 	mem_zero(addr, sizeof(NETADDR));
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(str[0] == '[')
 	{
 		/* ipv6 */
@@ -1026,7 +1074,7 @@ int net_addr_from_str(NETADDR *addr, const char *string)
 		return 0;
 	}
 	else
-#endif // ARM9
+#endif // __NDS__
 	{
 		/* ipv4 */
 		if(parse_uint8(&addr->ip[0], &str)) return -1;
@@ -1179,7 +1227,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 				int iptos = 0x10 /* IPTOS_LOWDELAY */;
 				//int iptos = 46; /* High Priority */
 
-#ifndef ARM9
+#ifndef __NDS__
 				setsockopt(socket, IPPROTO_IP, IP_TOS, (char*)&iptos, sizeof(iptos));
 #else
 				setsockopt(socket, 0, 8, (char*)&iptos, sizeof(iptos));
@@ -1207,7 +1255,7 @@ NETSOCKET net_udp_create(NETADDR bindaddr)
 	}
 #endif
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(bindaddr.type&NETTYPE_IPV6)
 	{
 		struct sockaddr_in6 addr;
@@ -1289,7 +1337,7 @@ int net_udp_send(NETSOCKET sock, const NETADDR *addr, const void *data, int size
 	}
 #endif
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(addr->type&NETTYPE_IPV6)
 	{
 		if(sock.ipv6sock >= 0)
@@ -1350,7 +1398,7 @@ int net_udp_recv(NETSOCKET sock, NETADDR *addr, void *data, int maxsize)
 		bytes = recvfrom(sock.ipv4sock, (char*)data, maxsize, 0, (struct sockaddr *)&sockaddrbuf, &fromlen);
 	}
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(bytes <= 0 && sock.ipv6sock >= 0)
 	{
 		fromlen = sizeof(struct sockaddr_in6);
@@ -1433,7 +1481,7 @@ NETSOCKET net_tcp_create(NETADDR bindaddr)
 		}
 	}
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(bindaddr.type&NETTYPE_IPV6)
 	{
 		struct sockaddr_in6 addr;
@@ -1536,7 +1584,7 @@ int net_tcp_accept(NETSOCKET sock, NETSOCKET *new_sock, NETADDR *a)
 		}
 	}
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(sock.ipv6sock >= 0)
 	{
 		struct sockaddr_in6 addr;
@@ -1566,7 +1614,7 @@ int net_tcp_connect(NETSOCKET sock, const NETADDR *a)
 		return connect(sock.ipv4sock, (struct sockaddr *)&addr, sizeof(addr));
 	}
 
-#ifndef ARM9
+#ifndef __NDS__
 	if(a->type&NETTYPE_IPV6)
 	{
 		struct sockaddr_in6 addr;

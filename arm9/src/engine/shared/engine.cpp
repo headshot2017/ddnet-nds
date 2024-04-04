@@ -10,6 +10,12 @@
 #include <engine/shared/network.h>
 
 
+static int HostLookupThread(void *pUser)
+{
+	CHostLookup *pLookup = (CHostLookup *)pUser;
+	return net_host_lookup(pLookup->m_aHostname, &pLookup->m_Addr, pLookup->m_Nettype);
+}
+
 class CEngine : public IEngine
 {
 public:
@@ -68,6 +74,8 @@ public:
 		net_init();
 		CNetBase::Init();
 
+		m_JobPool.Init(1);
+
 		m_Logging = false;
 	}
 
@@ -92,12 +100,16 @@ public:
 
 	void HostLookup(CHostLookup *pLookup, const char *pHostname, int Nettype)
 	{
-		
+		str_copy(pLookup->m_aHostname, pHostname, sizeof(pLookup->m_aHostname));
+		pLookup->m_Nettype = Nettype;
+		AddJob(&pLookup->m_Job, HostLookupThread, pLookup);
 	}
 
 	void AddJob(CJob *pJob, JOBFUNC pfnFunc, void *pData)
 	{
-		
+		if(g_Config.m_Debug)
+			dbg_msg("engine", "job added");
+		m_JobPool.Add(pJob, pfnFunc, pData);
 	}
 };
 

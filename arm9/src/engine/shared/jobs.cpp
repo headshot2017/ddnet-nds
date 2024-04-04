@@ -6,7 +6,7 @@
 CJobPool::CJobPool()
 {
 	// empty the pool
-	//m_Lock = lock_create();
+	m_Lock = lock_create();
 	m_pFirstJob = 0;
 	m_pLastJob = 0;
 }
@@ -48,8 +48,8 @@ void CJobPool::WorkerThread(void *pUser)
 int CJobPool::Init(int NumThreads)
 {
 	// start threads
-	//for(int i = 0; i < NumThreads; i++)
-		//thread_init(WorkerThread, this);
+	for(int i = 0; i < NumThreads; i++)
+		thread_init(WorkerThread, this);
 	return 0;
 }
 
