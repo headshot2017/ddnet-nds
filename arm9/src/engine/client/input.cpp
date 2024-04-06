@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <nds.h>
+#include <unordered_map>
 
 #include <base/system.h>
 #include <engine/shared/config.h>
@@ -15,6 +16,18 @@
 #define KEYS_INCLUDE
 #include "keynames.h"
 #undef KEYS_INCLUDE
+
+std::unordered_map<int, int> DSkeys = {
+	{KEY_LEFT, KEY_a},
+	{KEY_RIGHT, KEY_d},
+	{KEY_A, KEY_RETURN},
+	{KEY_B, KEY_SPACE},
+	{KEY_Y, KEY_MOUSE_1},
+	{KEY_TOUCH, KEY_MOUSE_1},
+	{KEY_L, KEY_MOUSE_2},
+	{KEY_R, KEY_MOUSE_WHEEL_DOWN},
+	{KEY_START, KEY_ESCAPE},
+};
 
 void CInput::AddEvent(int Unicode, int Key, int Flags)
 {
@@ -116,17 +129,10 @@ int CInput::Update()
 		int Key = -1;
 		int Action = IInput::FLAG_PRESS;
 
-		if (down & KEY_LEFT) Key = KEY_a;
-		if (down & KEY_RIGHT) Key = KEY_d;
-		if (down & KEY_A) Key = KEY_RETURN;
-		if (down & KEY_B) Key = KEY_SPACE;
-		if (down & KEY_TOUCH || down & KEY_Y) Key = KEY_MOUSE_1;
-		if (down & KEY_L) Key = KEY_MOUSE_2;
-		if (down & KEY_R) Key = KEY_MOUSE_WHEEL_DOWN;
-		if (down & KEY_START) Key = KEY_ESCAPE;
-
-		if(Key != -1)
+		for(std::unordered_map<int, int>::iterator it = DSkeys.begin(); it != DSkeys.end(); ++it)
 		{
+			if (!(down & it->first)) continue;
+			Key = it->second;
 			m_aInputCount[m_InputCurrent][Key].m_Presses++;
 			m_aInputState[m_InputCurrent][Key] = 1;
 			AddEvent(0, Key, Action);
@@ -136,17 +142,10 @@ int CInput::Update()
 		Key = -1;
 		Action = IInput::FLAG_RELEASE;
 
-		if (up & KEY_LEFT) Key = KEY_a;
-		if (up & KEY_RIGHT) Key = KEY_d;
-		if (up & KEY_A) Key = KEY_RETURN;
-		if (up & KEY_B) Key = KEY_SPACE;
-		if (up & KEY_TOUCH || up & KEY_Y) Key = KEY_MOUSE_1;
-		if (up & KEY_L) Key = KEY_MOUSE_2;
-		if (up & KEY_R) Key = KEY_MOUSE_WHEEL_DOWN;
-		if (up & KEY_START) Key = KEY_ESCAPE;
-
-		if(Key != -1)
+		for(std::unordered_map<int, int>::iterator it = DSkeys.begin(); it != DSkeys.end(); ++it)
 		{
+			if (!(up & it->first)) continue;
+			Key = it->second;
 			m_aInputCount[m_InputCurrent][Key].m_Presses++;
 			AddEvent(0, Key, Action);
 		}
