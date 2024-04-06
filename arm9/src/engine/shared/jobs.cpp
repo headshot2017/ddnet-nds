@@ -3,6 +3,9 @@
 #include <base/system.h>
 #include "jobs.h"
 
+#include <nds.h>
+#include <mp3_shared.h>
+
 CJobPool::CJobPool()
 {
 	// empty the pool
@@ -17,6 +20,8 @@ void CJobPool::WorkerThread(void *pUser)
 
 	while(1)
 	{
+		mp3_fill_buffer();
+
 		CJob *pJob = 0;
 
 		// fetch job from queue
@@ -38,6 +43,7 @@ void CJobPool::WorkerThread(void *pUser)
 			pJob->m_Status = CJob::STATE_RUNNING;
 			pJob->m_Result = pJob->m_pfnFunc(pJob->m_pFuncData);
 			pJob->m_Status = CJob::STATE_DONE;
+			mp3_fill_buffer();
 		}
 		else
 			thread_yield();
