@@ -556,6 +556,7 @@ void *thread_init(void (*threadfunc)(void *), void *u)
 	cothread_t* id = (cothread_t*)mem_alloc(sizeof(cothread_t), 1);
 	struct thread_data d = {threadfunc, u};
 	*id = cothread_create(thread_mainfunc, (void*)&d, 0, 0);
+	cothread_yield();
 	return (void*)id;
 #else
 	#error not implemented
@@ -967,8 +968,21 @@ int net_host_lookup(const char *hostname, NETADDR *addr, int types)
 	addr->port = port;
 	freeaddrinfo(result);
 #else
-	mem_zero(addr, sizeof(NETADDR));
-	net_addr_from_str(addr, host);
+	struct hostent* hp = gethostbyname(host);
+	struct in_addr** p1 = (struct in_addr **)hp->h_addr_list;
+	char ip_address[NETADDR_MAXSTRSIZE];
+
+	for(int i = 0; p1[i]!=NULL; i+=1) {
+		const struct in_addr *in = p1[i];
+		const u32 a = ntohl(in->s_addr);
+		snprintf(ip_address, NETADDR_MAXSTRSIZE, "%d.%d.%d.%d",
+		    (int)(u8)((a>>24)&0xff),
+		    (int)(u8)((a>>16)&0xff),
+		    (int)(u8)((a>>8 )&0xff),
+		    (int)(u8)((a    )&0xff));
+	}
+
+	net_addr_from_str(addr, ip_address);
 	addr->port = port;
 #endif
 

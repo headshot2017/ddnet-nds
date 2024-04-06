@@ -40,7 +40,7 @@ void CJobPool::WorkerThread(void *pUser)
 			pJob->m_Status = CJob::STATE_DONE;
 		}
 		else
-			thread_sleep(10);
+			thread_yield();
 	}
 
 }
@@ -70,5 +70,7 @@ int CJobPool::Add(CJob *pJob, JOBFUNC pfnFunc, void *pData)
 		m_pFirstJob = pJob;
 
 	lock_unlock(m_Lock);
+	thread_yield();
+
 	return 0;
 }
