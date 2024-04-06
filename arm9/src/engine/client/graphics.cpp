@@ -328,7 +328,8 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 		if(Width > GL_MAX_TEXTURE_SIZE || Height > GL_MAX_TEXTURE_SIZE)
 		{
 			int NewWidth = min(Width, GL_MAX_TEXTURE_SIZE);
-			int NewHeight = min(Height, GL_MAX_TEXTURE_SIZE);
+			float div = NewWidth/(float)Width;
+			int NewHeight = Height * div;
 			pTmpData = Rescale(Width, Height, NewWidth, NewHeight, Format, pTexData);
 			pTexData = pTmpData;
 			Width = NewWidth;
