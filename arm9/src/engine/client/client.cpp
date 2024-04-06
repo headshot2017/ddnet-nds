@@ -2587,7 +2587,7 @@ void CClient::Run()
 	while (1)
 	{
 		//
-		VersionUpdate();
+		//VersionUpdate();
 
 		// handle pending connects
 		if(m_aCmdConnect[0])
