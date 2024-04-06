@@ -48,7 +48,6 @@ protected:
 	float m_ScreenY1;
 
 	int m_InvalidTexture;
-	int m_CurrTexture;
 
 	struct CTexture
 	{

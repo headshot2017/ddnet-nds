@@ -45,7 +45,7 @@ void CGraphics_NDS::Flush()
 			int v = floattof32(m_aVertices[i].m_Tex.v);
 
 			glColor3b(r, g, b);
-			if (m_CurrTexture != -1) glTexCoord2f32(u, v);
+			glTexCoord2f32(u, v);
 			glVertex3v16(x, y, z);
 		}
 	}
@@ -127,7 +127,6 @@ CGraphics_NDS::CGraphics_NDS()
 	m_Rotation = 0;
 	m_Drawing = 0;
 	m_InvalidTexture = 0;
-	m_CurrTexture = -1;
 
 	m_TextureMemoryUsage = 0;
 
@@ -246,12 +245,15 @@ int CGraphics_NDS::UnloadTexture(int Index)
 #define ALPHA_to_DS(src) \
 	((src[0] & 0xF8) >> 3) | ((src[0] & 0xF8) << 2) | ((src[0] & 0xF8) << 7) | ((src[0] & 0x80) << 8)
 
+#define RGB_to_DS(src) \
+	((src[0] & 0xF8) >> 3) | ((src[1] & 0xF8) << 2) | ((src[2] & 0xF8) << 7) | ((255 & 0x80) << 8)
+
 #define RGBA8_to_DS(src) \
 	((src[0] & 0xF8) >> 3) | ((src[1] & 0xF8) << 2) | ((src[2] & 0xF8) << 7) | ((src[3] & 0x80) << 8)
 
 static void ConvertTexture(u16* dst, const u8* src, int w, int h, int StoreFormat)
 {
-	int add = (StoreFormat == CImageInfo::FORMAT_ALPHA) ? 1 : 4;
+	int add = (StoreFormat == CImageInfo::FORMAT_ALPHA) ? 1 : (StoreFormat == CImageInfo::FORMAT_RGB) ? 3 : 4;
 
 	for (int y = 0; y < h; y++)
 	{
@@ -259,6 +261,8 @@ static void ConvertTexture(u16* dst, const u8* src, int w, int h, int StoreForma
 		{
 			if (StoreFormat == CImageInfo::FORMAT_ALPHA)
 				*dst++ = ALPHA_to_DS(src);
+			else if (StoreFormat == CImageInfo::FORMAT_RGB)
+				*dst++ = RGB_to_DS(src);
 			else
 				*dst++ = RGBA8_to_DS(src);
 		}
@@ -279,7 +283,7 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 	else if (vram_ptr >= VRAM_B) vramSetBankB(VRAM_B_LCD);
 	else if (vram_ptr >= VRAM_A) vramSetBankA(VRAM_A_LCD);
 
-	int add = (Format == CImageInfo::FORMAT_ALPHA) ? 1 : 4;
+	int add = (Format == CImageInfo::FORMAT_ALPHA) ? 1 : (Format == CImageInfo::FORMAT_RGB) ? 3 : 4;
 
     for (int yy = 0; yy < Height; yy++)
 	{
@@ -290,6 +294,8 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 		{
 			if (Format == CImageInfo::FORMAT_ALPHA)
 				*dst = ALPHA_to_DS(src);
+			else if (Format == CImageInfo::FORMAT_RGB)
+				*dst = RGB_to_DS(src);
 			else
 				*dst = RGBA8_to_DS(src);
 		}
@@ -337,7 +343,11 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 		}
 	}
 
-	u16* pFinalData = (u16*)mem_alloc(Width * Height * 2, 1);
+	int PixelSize = 4;
+	if(StoreFormat == CImageInfo::FORMAT_RGB)
+		PixelSize = 3;
+
+	u16* pFinalData = (u16*)mem_alloc(Width * Height * PixelSize * 2, 1);
 	ConvertTexture(pFinalData, pTexData, Width, Height, StoreFormat);
 	if (pTmpData) mem_free(pTmpData);
 
@@ -349,7 +359,7 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	glGenTextures(1, &m_aTextures[Tex].m_Tex);
 	glBindTexture(GL_TEXTURE_2D, m_aTextures[Tex].m_Tex);
 
-	if (!glTexImage2D(GL_TEXTURE_2D, 0, StoreOglformat, Width, Height, 0, TEXGEN_TEXCOORD, pFinalData))
+	if (!glTexImage2D(GL_TEXTURE_2D, 0, (GL_TEXTURE_TYPE_ENUM)StoreOglformat, Width, Height, 0, TEXGEN_TEXCOORD, pFinalData))
 	{
 		printf("FAILED TEXIMAGE2D %d %d %s\n", Width, Height, pTmpData?"true":"false");
 		if (pFinalData) mem_free(pFinalData);
@@ -358,15 +368,10 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 
 	// calculate memory usage
 	{
-		int PixelSize = 4;
-		if(StoreFormat == CImageInfo::FORMAT_RGB)
-			PixelSize = 3;
-		else if(StoreFormat == CImageInfo::FORMAT_ALPHA)
-			PixelSize = 1;
-
 		m_aTextures[Tex].m_MemSize = Width*Height*PixelSize;
 	}
 
+	mem_free(pFinalData);
 	m_TextureMemoryUsage += m_aTextures[Tex].m_MemSize;
 	return Tex;
 }
@@ -451,7 +456,6 @@ void CGraphics_NDS::ScreenshotDirect(const char *pFilename)
 void CGraphics_NDS::TextureSet(int TextureID)
 {
 	dbg_assert(m_Drawing == 0, "called Graphics()->TextureSet within begin");
-	m_CurrTexture = TextureID;
 	if(TextureID == -1)
 	{
 		glBindTexture(GL_TEXTURE_2D, -1);
