@@ -20,7 +20,7 @@
 #include "graphics.h"
 
 #define GL_MAX_TEXTURE_SIZE 128
-#define SCALE_VERTICES 1024
+#define SCALE_VERTICES 2048
 
 void CGraphics_NDS::Flush()
 {
