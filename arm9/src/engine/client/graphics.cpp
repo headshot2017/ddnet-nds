@@ -48,6 +48,8 @@ void CGraphics_NDS::Flush()
 			glTexCoord2f32(u, v);
 			glVertex3v16(x, y, z);
 		}
+
+		glEnd();
 	}
 
 	// Reset pointer
