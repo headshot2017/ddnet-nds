@@ -629,6 +629,7 @@ int CMenus::RenderMenubar(CUIRect r)
 		}
 
 		//box.VSplitLeft(4.0f, 0, &box);
+		/*
 		Box.VSplitLeft(100.0f, &Button, &Box);
 		static int s_DDNetButton=0;
 		if(DoButton_MenuTab(&s_DDNetButton, Localize("DDNet"), m_ActivePage==PAGE_DDNET, &Button, CUI::CORNER_TR))
@@ -638,6 +639,7 @@ int CMenus::RenderMenubar(CUIRect r)
 			NewPage = PAGE_DDNET;
 			m_DoubleClickIndex = -1;
 		}
+		*/
 
 		Box.VSplitLeft(10.0f, 0, &Box);
 		Box.VSplitLeft(100.0f, &Button, &Box);
@@ -699,6 +701,7 @@ int CMenus::RenderMenubar(CUIRect r)
 	if(DoButton_MenuTab(&s_SettingsButton, "⚙", m_ActivePage==PAGE_SETTINGS, &Button, CUI::CORNER_T))
 		NewPage = PAGE_SETTINGS;
 
+	/*
 	Box.VSplitRight(10.0f, &Box, &Button);
 	Box.VSplitRight(30.0f, &Box, &Button);
 	static int s_EditorButton=0;
@@ -706,6 +709,7 @@ int CMenus::RenderMenubar(CUIRect r)
 	{
 		g_Config.m_ClEditor = 1;
 	}
+	*/
 
 	if(NewPage != -1)
 	{
