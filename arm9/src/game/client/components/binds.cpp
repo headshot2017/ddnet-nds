@@ -110,6 +110,11 @@ void CBinds::SetDefaults()
 	Bind(KEY_PAGEDOWN, "+nextweapon");
 	Bind(KEY_F5, "spectate_previous");
 	Bind(KEY_F6, "spectate_next");
+#elif defined(__NDS__)
+	Bind(KEY_RETURN, "+show_chat; chat all");
+	Bind(KEY_MOUSE_WHEEL_DOWN, "spectate_next");
+	Bind(KEY_MOUSE_2, "spectate_previous");
+	Bind(KEY_RSHIFT, "+spectate");
 #else
 	Bind(KEY_RETURN, "+show_chat; chat all");
 	Bind(KEY_RIGHTARROW, "spectate_next");
