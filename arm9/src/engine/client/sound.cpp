@@ -70,7 +70,7 @@ static CChannel m_aChannels[NUM_CHANNELS] = { {255, 0} };
 static int m_CenterX = 0;
 static int m_CenterY = 0;
 
-static int m_MixingRate = 48000;
+static int m_MixingRate = 22050;
 static volatile int m_SoundVolume = 100;
 
 static int m_NextVoice = 0;
@@ -326,7 +326,7 @@ int CSound::LoadWV(const char *pFilename)
 	if(g_Config.m_Debug)
 		dbg_msg("sound/wv", "loaded %s", pFilename);
 
-	RateConvert(SampleID);
+	//RateConvert(SampleID);
 	return SampleID;
 }
 
@@ -355,7 +355,7 @@ int CSound::LoadWVFromMem(const void *pData, unsigned DataSize, bool FromEditor 
 
 	SampleID = DecodeWV(SampleID, pData, DataSize);
 
-	RateConvert(SampleID);
+	//RateConvert(SampleID);
 	return SampleID;
 }
 
@@ -515,6 +515,7 @@ ISound::CVoiceHandle CSound::Play(int ChannelID, int SampleID, int Flags, float 
 	}
 
 	// voice found, use it
+	/*
 	if(VoiceID != -1)
 	{
 		m_aVoices[VoiceID].m_pSample = &m_aSamples[SampleID];
@@ -532,6 +533,60 @@ ISound::CVoiceHandle CSound::Play(int ChannelID, int SampleID, int Flags, float 
 		m_aVoices[VoiceID].m_Circle.m_Radius = DefaultDistance;
 		Age = m_aVoices[VoiceID].m_Age;
 	}
+	*/
+
+	int vol = f32toint( mulf32( divf32( inttof32(m_SoundVolume), inttof32(100) ), inttof32(127) ) );
+	int pan = 64;
+	if (Flags & ISound::FLAG_POS)
+	{
+		// TODO: we should respect the channel panning value
+		int dx = (int)x - m_CenterX;
+		int dy = (int)y - m_CenterY;
+		//
+		int p = IntAbs(dx);
+		float FalloffX = 0.0f;
+		float FalloffY = 0.0f;
+
+		int RangeX = 0; // for panning
+		bool InVoiceField = false;
+
+		float r = DefaultDistance;
+		RangeX = r;
+
+		int Dist = (int)sqrtf((float)dx*dx+dy*dy); // nasty float
+		if(Dist < r)
+		{
+			InVoiceField = true;
+
+			// falloff
+			int FalloffDistance = r*0;
+			if(Dist > FalloffDistance)
+				FalloffX = FalloffY = (r-Dist)/(r-FalloffDistance);
+			else
+				FalloffX = FalloffY = 1.0f;
+		}
+		else
+			InVoiceField = false;
+
+		if(InVoiceField)
+		{
+			// panning
+			if(!(Flags & ISound::FLAG_NO_PANNING))
+			{
+				if(dx > 0) // Lvol
+					vol = ((RangeX-p)*vol)/RangeX;
+				else // Rvol
+					vol = ((RangeX-p)*vol)/RangeX;
+			}
+
+			vol *= FalloffX;
+		}
+		else
+			vol = 0;
+	}
+
+	if (vol)
+		soundPlaySample(m_aSamples[SampleID].m_pData, SoundFormat_16Bit, m_aSamples[SampleID].m_NumFrames*2, m_aSamples[SampleID].m_Rate, vol, pan, false, 0);
 
 	return CreateVoiceHandle(VoiceID, Age);
 }
