@@ -125,9 +125,12 @@ int CInput::Update()
 	{
 		scanKeys();
 
+		int held = keysHeld();
+		if (held & KEY_TOUCH || held & KEY_Y) m_aInputState[m_InputCurrent][KEY_MOUSE_1] = 1;
+		if (held & KEY_L) m_aInputState[m_InputCurrent][KEY_MOUSE_2] = 1;
+
 		int down = keysDown();
-		int Key = -1;
-		int Action = IInput::FLAG_PRESS;
+		int Key;
 
 		for(std::unordered_map<int, int>::iterator it = DSkeys.begin(); it != DSkeys.end(); ++it)
 		{
@@ -135,19 +138,17 @@ int CInput::Update()
 			Key = it->second;
 			m_aInputCount[m_InputCurrent][Key].m_Presses++;
 			m_aInputState[m_InputCurrent][Key] = 1;
-			AddEvent(0, Key, Action);
+			AddEvent(0, Key, IInput::FLAG_PRESS);
 		}
 
 		int up = keysUp();
-		Key = -1;
-		Action = IInput::FLAG_RELEASE;
 
 		for(std::unordered_map<int, int>::iterator it = DSkeys.begin(); it != DSkeys.end(); ++it)
 		{
 			if (!(up & it->first)) continue;
 			Key = it->second;
 			m_aInputCount[m_InputCurrent][Key].m_Presses++;
-			AddEvent(0, Key, Action);
+			AddEvent(0, Key, IInput::FLAG_RELEASE);
 		}
 	}
 
