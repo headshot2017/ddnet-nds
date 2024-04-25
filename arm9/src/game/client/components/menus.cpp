@@ -759,6 +759,7 @@ void CMenus::RenderLoading()
 	Graphics()->QuadsEnd();
 
 
+	/*
 	const char *pCaption = Localize("Loading DDNet Client");
 
 	CUIRect r;
@@ -767,8 +768,9 @@ void CMenus::RenderLoading()
 	r.w = w;
 	r.h = h;
 	UI()->DoLabel(&r, pCaption, 48.0f, 0, -1);
+	*/
 
-	Graphics()->TextureSet(-1);
+	//Graphics()->TextureSet(-1);
 	Graphics()->QuadsBegin();
 	Graphics()->SetColor(1,1,1,0.75f);
 	RenderTools()->DrawRoundRect(x+40, y+h-75, (w-80)*Percent, 25, 5.0f);
