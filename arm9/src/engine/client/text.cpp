@@ -485,6 +485,7 @@ public:
 		dbg_msg("textrender", "loaded pFont from '%s'", pFilename);
 		return pFont;
 		*/
+		return 0;
 	};
 
 	virtual void DestroyFont(CFont *pFont)
@@ -502,7 +503,7 @@ public:
 	virtual void SetCursor(CTextCursor *pCursor, float x, float y, float FontSize, int Flags)
 	{
 		mem_zero(pCursor, sizeof(*pCursor));
-		pCursor->m_FontSize = FontSize;
+		pCursor->m_FontSize = FontSize*1.35f;
 		pCursor->m_StartX = x;
 		pCursor->m_StartY = y;
 		pCursor->m_X = x;
@@ -524,10 +525,8 @@ public:
 
 	virtual float TextWidth(void *pFontSetV, float Size, const char *pText, int Length)
 	{
-		CTextCursor Cursor;
-		SetCursor(&Cursor, 0, 0, Size, 0);
-		TextEx(&Cursor, pText, Length);
-		return Cursor.m_X;
+		float len = str_length(pText) * Size*1.4f*0.5f;
+		return len;
 	}
 
 	virtual int TextLineCount(void *pFontSetV, float Size, const char *pText, float LineWidth)
@@ -567,7 +566,6 @@ public:
 		int ActualX, ActualY;
 
 		int ActualSize;
-		int i;
 		int GotNewLine = 0;
 		float DrawX = 0.0f, DrawY = 0.0f;
 		int LineCount = 0;
@@ -600,17 +598,7 @@ public:
 		if(Length < 0)
 			Length = str_length(pText);
 
-		if(!(pCursor->m_Flags&TEXTFLAG_RENDER))
-			return;
-
-		Graphics()->TextureSet(Client()->GetDebugFont());
-		Graphics()->QuadsBegin();
-		Graphics()->SetColor(m_TextR, m_TextG, m_TextB, m_TextA);
-		Graphics()->QuadsText(CursorX, CursorY, Size, pText);
-		Graphics()->QuadsEnd();
-
-		/*
-		for(;i < 2; i++)
+		//for(;i < 2; i++)
 		{
 			const char *pCurrent = (char *)pText;
 			const char *pEnd = pCurrent+Length;
@@ -621,15 +609,16 @@ public:
 			if(pCursor->m_Flags&TEXTFLAG_RENDER)
 			{
 				// TODO: Make this better
-				if (i == 0)
+				/*if (i == 0)
 					Graphics()->TextureSet(pSizeData->m_aTextures[1]);
 				else
-					Graphics()->TextureSet(pSizeData->m_aTextures[0]);
+					Graphics()->TextureSet(pSizeData->m_aTextures[0]);*/
+				Graphics()->TextureSet(Client()->GetDebugFont());
 
 				Graphics()->QuadsBegin();
-				if (i == 0)
+				/*if (i == 0)
 					Graphics()->SetColor(m_TextOutlineR, m_TextOutlineG, m_TextOutlineB, m_TextOutlineA*m_TextA);
-				else
+				else*/
 					Graphics()->SetColor(m_TextR, m_TextG, m_TextB, m_TextA);
 			}
 
@@ -677,7 +666,7 @@ public:
 				int NextCharacter = str_utf8_decode(&pTmp);
 				while(pCurrent < pBatchEnd)
 				{
-					int Character = NextCharacter;
+					uint8_t Character = (uint8_t)NextCharacter;
 					pCurrent = pTmp;
 					NextCharacter = str_utf8_decode(&pTmp);
 
@@ -693,10 +682,11 @@ public:
 						continue;
 					}
 
-					CFontChar *pChr = GetChar(pFont, pSizeData, Character);
-					if(pChr)
+					//CFontChar *pChr = GetChar(pFont, pSizeData, Character);
+					//if(pChr)
 					{
-						float Advance = pChr->m_AdvanceX + Kerning(pFont, Character, NextCharacter)*Scale;
+						//float Advance = pChr->m_AdvanceX + Kerning(pFont, Character, NextCharacter)*Scale;
+						float Advance = Scale*0.5f;
 						if(pCursor->m_Flags&TEXTFLAG_STOP_AT_END && DrawX+Advance*Size-pCursor->m_StartX > pCursor->m_LineWidth)
 						{
 							// we hit the end of the line, no more to render or count
@@ -706,9 +696,18 @@ public:
 
 						if(pCursor->m_Flags&TEXTFLAG_RENDER)
 						{
-							Graphics()->QuadsSetSubset(pChr->m_aUvs[0], pChr->m_aUvs[1], pChr->m_aUvs[2], pChr->m_aUvs[3]);
-							IGraphics::CQuadItem QuadItem(DrawX+pChr->m_OffsetX*Size, DrawY+pChr->m_OffsetY*Size, pChr->m_Width*Size, pChr->m_Height*Size);
+							Graphics()->QuadsSetSubset(
+								(Character%16)/16.0f,
+								(Character/16)/16.0f,
+								(Character%16)/16.0f+1.0f/16.0f,
+								(Character/16)/16.0f+1.0f/16.0f);
+
+							IGraphics::CQuadItem QuadItem(DrawX, DrawY, Size, Size);
 							Graphics()->QuadsDrawTL(&QuadItem, 1);
+
+							/*Graphics()->QuadsSetSubset(pChr->m_aUvs[0], pChr->m_aUvs[1], pChr->m_aUvs[2], pChr->m_aUvs[3]);
+							IGraphics::CQuadItem QuadItem(DrawX+pChr->m_OffsetX*Size, DrawY+pChr->m_OffsetY*Size, pChr->m_Width*Size, pChr->m_Height*Size);
+							Graphics()->QuadsDrawTL(&QuadItem, 1);*/
 						}
 
 						DrawX += Advance*Size;
@@ -736,7 +735,6 @@ public:
 
 		if(GotNewLine)
 			pCursor->m_Y = DrawY;
-		*/
 	}
 
 };
