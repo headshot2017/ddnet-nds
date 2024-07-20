@@ -33,6 +33,12 @@ void CGraphics_NDS::Flush()
 
 		for (int i=0; i<m_NumVertices; i++)
 		{
+			// ortho projection
+			m_aVertices[i].m_Pos.x -= m_ScreenX0;
+			m_aVertices[i].m_Pos.y -= m_ScreenY0;
+			m_aVertices[i].m_Pos.x /= (m_ScreenX1-m_ScreenX0) / 256;
+			m_aVertices[i].m_Pos.y /= (m_ScreenY1-m_ScreenY0) / 192;
+
 			int r = m_aVertices[i].m_Color.r*255;
 			int g = m_aVertices[i].m_Color.g*255;
 			int b = m_aVertices[i].m_Color.b*255;
@@ -182,9 +188,6 @@ void CGraphics_NDS::MapScreen(float TopLeftX, float TopLeftY, float BottomRightX
 	m_ScreenY0 = TopLeftY;
 	m_ScreenX1 = BottomRightX;
 	m_ScreenY1 = BottomRightY;
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(m_ScreenX0, m_ScreenX1, m_ScreenY1, m_ScreenY0, -10.0f, 100.f);
 }
 
 void CGraphics_NDS::GetScreen(float *pTopLeftX, float *pTopLeftY, float *pBottomRightX, float *pBottomRightY)
@@ -782,6 +785,10 @@ int CGraphics_NDS::Init()
 	//glClearPolyID(63);
 
 	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0, 256, 192, 0, -10, 100);
 
 	vramSetBankA(VRAM_A_TEXTURE);
 	vramSetBankB(VRAM_B_TEXTURE);
