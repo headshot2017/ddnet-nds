@@ -71,7 +71,7 @@ class CClient : public IClient, public CDemoPlayer::IListner
 
 	class CNetClient m_NetClient[3];
 	class CDemoPlayer m_DemoPlayer;
-	class CDemoRecorder m_DemoRecorder[RECORDER_MAX];
+	class CDemoRecorder *m_DemoRecorder[RECORDER_MAX];
 	class CDemoEditor m_DemoEditor;
 	class CServerBrowser m_ServerBrowser;
 	class CFriends m_Friends;
