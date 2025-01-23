@@ -22,6 +22,8 @@
 #define GL_MAX_TEXTURE_SIZE 128
 #define SCALE_VERTICES 2048
 
+static int _z = 0;
+
 void CGraphics_NDS::Flush()
 {
 	if(m_NumVertices == 0)
@@ -45,7 +47,7 @@ void CGraphics_NDS::Flush()
 
 			int x = floattov16(m_aVertices[i].m_Pos.x / SCALE_VERTICES);
 			int y = floattov16(m_aVertices[i].m_Pos.y / SCALE_VERTICES);
-			int z = floattov16(m_aVertices[i].m_Pos.z / SCALE_VERTICES);
+			int z = (int)m_aVertices[i].m_Pos.z;
 
 			int u = floattof32(m_aVertices[i].m_Tex.u);
 			int v = floattof32(m_aVertices[i].m_Tex.v);
@@ -464,12 +466,11 @@ void CGraphics_NDS::TextureSet(int TextureID)
 	dbg_assert(m_Drawing == 0, "called Graphics()->TextureSet within begin");
 	if(TextureID == -1)
 	{
-		glBindTexture(GL_TEXTURE_2D, -1);
-		glDisable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		//glDisable(GL_TEXTURE_2D);
 	}
 	else
 	{
-		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, m_aTextures[TextureID].m_Tex);
 	}
 }
@@ -573,32 +574,38 @@ void CGraphics_NDS::QuadsDrawTL(const CQuadItem *pArray, int Num)
 			// first triangle
 			m_aVertices[m_NumVertices + 6*i].m_Pos.x = pArray[i].m_X;
 			m_aVertices[m_NumVertices + 6*i].m_Pos.y = pArray[i].m_Y;
+			m_aVertices[m_NumVertices + 6*i].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 6*i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.y = pArray[i].m_Y;
+			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 1].m_Tex = m_aTexture[1];
 			m_aVertices[m_NumVertices + 6*i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
+			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 2].m_Tex = m_aTexture[2];
 			m_aVertices[m_NumVertices + 6*i + 2].m_Color = m_aColor[2];
 
 			// second triangle
 			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.x = pArray[i].m_X;
 			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.y = pArray[i].m_Y;
+			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 3].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 6*i + 3].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
+			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 4].m_Tex = m_aTexture[2];
 			m_aVertices[m_NumVertices + 6*i + 4].m_Color = m_aColor[2];
 
 			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.x = pArray[i].m_X;
 			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
+			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 5].m_Tex = m_aTexture[3];
 			m_aVertices[m_NumVertices + 6*i + 5].m_Color = m_aColor[3];
 
@@ -619,21 +626,25 @@ void CGraphics_NDS::QuadsDrawTL(const CQuadItem *pArray, int Num)
 		{
 			m_aVertices[m_NumVertices + 4*i].m_Pos.x = pArray[i].m_X;
 			m_aVertices[m_NumVertices + 4*i].m_Pos.y = pArray[i].m_Y;
+			m_aVertices[m_NumVertices + 4*i].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 4*i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.y = pArray[i].m_Y;
+			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 1].m_Tex = m_aTexture[1];
 			m_aVertices[m_NumVertices + 4*i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.x = pArray[i].m_X + pArray[i].m_Width;
 			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
+			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 2].m_Tex = m_aTexture[2];
 			m_aVertices[m_NumVertices + 4*i + 2].m_Color = m_aColor[2];
 
 			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.x = pArray[i].m_X;
 			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.y = pArray[i].m_Y + pArray[i].m_Height;
+			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 3].m_Tex = m_aTexture[3];
 			m_aVertices[m_NumVertices + 4*i + 3].m_Color = m_aColor[3];
 
@@ -648,6 +659,8 @@ void CGraphics_NDS::QuadsDrawTL(const CQuadItem *pArray, int Num)
 
 		AddVertices(4*Num);
 	}
+
+	_z++;
 }
 
 void CGraphics_NDS::QuadsDrawFreeform(const CFreeformItem *pArray, int Num)
@@ -660,31 +673,37 @@ void CGraphics_NDS::QuadsDrawFreeform(const CFreeformItem *pArray, int Num)
 		{
 			m_aVertices[m_NumVertices + 6*i].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 6*i].m_Pos.y = pArray[i].m_Y0;
+			m_aVertices[m_NumVertices + 6*i].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 6*i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.x = pArray[i].m_X1;
 			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.y = pArray[i].m_Y1;
+			m_aVertices[m_NumVertices + 6*i + 1].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 1].m_Tex = m_aTexture[1];
 			m_aVertices[m_NumVertices + 6*i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.y = pArray[i].m_Y3;
+			m_aVertices[m_NumVertices + 6*i + 2].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 2].m_Tex = m_aTexture[3];
 			m_aVertices[m_NumVertices + 6*i + 2].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.y = pArray[i].m_Y0;
+			m_aVertices[m_NumVertices + 6*i + 3].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 3].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 6*i + 3].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.y = pArray[i].m_Y3;
+			m_aVertices[m_NumVertices + 6*i + 4].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 4].m_Tex = m_aTexture[3];
 			m_aVertices[m_NumVertices + 6*i + 4].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.x = pArray[i].m_X2;
 			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.y = pArray[i].m_Y2;
+			m_aVertices[m_NumVertices + 6*i + 5].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 6*i + 5].m_Tex = m_aTexture[2];
 			m_aVertices[m_NumVertices + 6*i + 5].m_Color = m_aColor[2];
 		}
@@ -697,27 +716,33 @@ void CGraphics_NDS::QuadsDrawFreeform(const CFreeformItem *pArray, int Num)
 		{
 			m_aVertices[m_NumVertices + 4*i].m_Pos.x = pArray[i].m_X0;
 			m_aVertices[m_NumVertices + 4*i].m_Pos.y = pArray[i].m_Y0;
+			m_aVertices[m_NumVertices + 4*i].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i].m_Tex = m_aTexture[0];
 			m_aVertices[m_NumVertices + 4*i].m_Color = m_aColor[0];
 
 			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.x = pArray[i].m_X1;
 			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.y = pArray[i].m_Y1;
+			m_aVertices[m_NumVertices + 4*i + 1].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 1].m_Tex = m_aTexture[1];
 			m_aVertices[m_NumVertices + 4*i + 1].m_Color = m_aColor[1];
 
 			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.x = pArray[i].m_X3;
 			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.y = pArray[i].m_Y3;
+			m_aVertices[m_NumVertices + 4*i + 2].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 2].m_Tex = m_aTexture[3];
 			m_aVertices[m_NumVertices + 4*i + 2].m_Color = m_aColor[3];
 
 			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.x = pArray[i].m_X2;
 			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.y = pArray[i].m_Y2;
+			m_aVertices[m_NumVertices + 4*i + 3].m_Pos.z = _z;
 			m_aVertices[m_NumVertices + 4*i + 3].m_Tex = m_aTexture[2];
 			m_aVertices[m_NumVertices + 4*i + 3].m_Color = m_aColor[2];
 		}
 
 		AddVertices(4*Num);
 	}
+
+	_z++;
 }
 
 void CGraphics_NDS::QuadsText(float x, float y, float Size, const char *pText)
@@ -774,6 +799,7 @@ int CGraphics_NDS::Init()
 	m_aTextures[MAX_TEXTURES-1].m_Next = -1;
 
 	// set some default settings
+	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -788,7 +814,7 @@ int CGraphics_NDS::Init()
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, 256, 192, 0, -10, 100);
+	glOrtho(0, 256, 192, 0, -500, 500);
 
 	vramSetBankA(VRAM_A_TEXTURE);
 	vramSetBankB(VRAM_B_TEXTURE);
@@ -852,6 +878,7 @@ void CGraphics_NDS::TakeCustomScreenshot(const char *pFilename)
 void CGraphics_NDS::Swap()
 {
 	glFlush(0);
+	_z = 0;
 }
 
 
