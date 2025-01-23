@@ -886,9 +886,9 @@ int CGraphics_NDS::GetVideoModes(CVideoMode *pModes, int MaxModes)
 {
 	pModes[0].m_Width = 256;
 	pModes[0].m_Height = 192;
-	pModes[0].m_Red = 8;
-	pModes[0].m_Green = 8;
-	pModes[0].m_Blue = 8;
+	pModes[0].m_Red = 5;
+	pModes[0].m_Green = 6;
+	pModes[0].m_Blue = 5;
 	return 1;
 }
 
