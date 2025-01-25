@@ -3164,6 +3164,11 @@ static CClient *CreateClient()
 
 int main(int argc, const char **argv)
 {
+	extern char* fake_heap_end;
+	fake_heap_end -= 16384;
+
+	defaultExceptionHandler();
+
 	videoSetMode(MODE_0_3D);
 	videoSetModeSub(MODE_0_2D);
 

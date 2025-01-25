@@ -35,6 +35,9 @@ void CGraphics_NDS::Flush()
 
 		for (int i=0; i<m_NumVertices; i++)
 		{
+			if (!m_aVertices[i].m_Color.a)
+				continue;
+
 			// ortho projection
 			m_aVertices[i].m_Pos.x -= m_ScreenX0;
 			m_aVertices[i].m_Pos.y -= m_ScreenY0;
@@ -258,26 +261,20 @@ int CGraphics_NDS::UnloadTexture(int Index)
 #define RGBA8_to_DS(src) \
 	((src[0] & 0xF8) >> 3) | ((src[1] & 0xF8) << 2) | ((src[2] & 0xF8) << 7) | ((src[3] & 0x80) << 8)
 
-static void ConvertTexture(u16* dst, const u8* src, int w, int h, int StoreFormat)
+static int FindColorInPalette(u16* pal, int pal_size, u16 col)
 {
-	int add = (StoreFormat == CImageInfo::FORMAT_ALPHA) ? 1 : (StoreFormat == CImageInfo::FORMAT_RGB) ? 3 : 4;
-
-	for (int y = 0; y < h; y++)
-	{
-		for (int x = 0; x < w; x++, src += add)
-		{
-			if (StoreFormat == CImageInfo::FORMAT_ALPHA)
-				*dst++ = ALPHA_to_DS(src);
-			else if (StoreFormat == CImageInfo::FORMAT_RGB)
-				*dst++ = RGB_to_DS(src);
-			else
-				*dst++ = RGBA8_to_DS(src);
-		}
+	if ((col >> 15) == 0) return 0;
+	
+	for (int i = 1; i < pal_size; i++) {
+		if(pal[i] == col) return i;
 	}
+	
+	return -1;
 }
 
 int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int Height, int Format, const void *pData)
 {
+	/*
     glBindTexture(GL_TEXTURE_2D, m_aTextures[TextureID].m_Tex);
     
     int texWidth = 0;
@@ -309,8 +306,29 @@ int CGraphics_NDS::LoadTextureRawSub(int TextureID, int x, int y, int Width, int
 	}
 
 	vramRestorePrimaryBanks(oldCr);
+	*/
 
 	return 0;
+}
+
+static bool IsPowerOf2(int theNum)
+{
+	int aNumBits = 0;
+	while (theNum>0)
+	{
+		aNumBits += theNum&1;
+		theNum >>= 1;
+	}
+
+	return aNumBits==1;
+}
+
+static int GetClosestPowerOf2Above(int theNum)
+{
+	int aPower2 = 1;
+	while (aPower2 < theNum)
+		aPower2<<=1;
+	return aPower2;
 }
 
 int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void *pData, int StoreFormat, int Flags)
@@ -337,6 +355,8 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 			int NewWidth = min(Width, GL_MAX_TEXTURE_SIZE);
 			float div = NewWidth/(float)Width;
 			int NewHeight = Height * div;
+			if (!IsPowerOf2(NewWidth)) NewWidth = GetClosestPowerOf2Above(NewWidth);
+			if (!IsPowerOf2(NewHeight)) NewHeight = GetClosestPowerOf2Above(NewHeight);
 			pTmpData = Rescale(Width, Height, NewWidth, NewHeight, Format, pTexData);
 			pTexData = pTmpData;
 			Width = NewWidth;
@@ -344,10 +364,14 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 		}
 		else if(Width > 16 && Height > 16 && g_Config.m_GfxTextureQuality == 0)
 		{
-			pTmpData = Rescale(Width, Height, Width/2, Height/2, Format, pTexData);
+			int NewWidth = Width/2;
+			int NewHeight = Height/2;
+			if (!IsPowerOf2(NewWidth)) NewWidth = GetClosestPowerOf2Above(NewWidth);
+			if (!IsPowerOf2(NewHeight)) NewHeight = GetClosestPowerOf2Above(NewHeight);
+			pTmpData = Rescale(Width, Height, NewWidth, NewHeight, Format, pTexData);
 			pTexData = pTmpData;
-			Width /= 2;
-			Height /= 2;
+			Width = NewWidth;
+			Height = NewHeight;
 		}
 	}
 
@@ -355,31 +379,116 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	if(StoreFormat == CImageInfo::FORMAT_RGB)
 		PixelSize = 3;
 
-	u16* pFinalData = (u16*)mem_alloc(Width * Height * PixelSize * 2, 1);
-	ConvertTexture(pFinalData, pTexData, Width, Height, StoreFormat);
+	u16* tmp = (u16*)mem_alloc(Width * Height * 2, 1);
+	if (!tmp)
+	{
+		printf("FAILED tmp\n");
+		return 0;
+	}
+
+	// transfer to tmp
+	for (int y = 0; y < Height; y++)
+	{
+		for (int x = 0; x < Width; x++)
+		{
+			u8* src = pTexData + ((y * Width + x) * PixelSize);
+			u16* dst = tmp + (y * Width + x);
+
+			if (StoreFormat == CImageInfo::FORMAT_RGB)
+				*dst = RGB_to_DS(src);
+			else
+				*dst = RGBA8_to_DS(src);
+		}
+	}
+
 	if (pTmpData) mem_free(pTmpData);
 
-	// upload texture
-	StoreOglformat = GL_RGBA;
-	if(StoreFormat == CImageInfo::FORMAT_RGB)
-		StoreOglformat = GL_RGB;
+	// try to palettize
+	u16* tmp_palette = (u16*)mem_alloc(256*2, 1);
+	int pal_size = 1;
+	if (!tmp_palette)
+	{
+		printf("FAILED tmp_palette\n");
+		return 0;
+	}
+	tmp_palette[0] = 0;
+
+	for (int i = 0; i < Width * Height; i++)
+	{
+		u16 col = tmp[i];
+	
+		int idx = FindColorInPalette(tmp_palette, pal_size, col);
+		
+		if (idx == -1) {
+			pal_size++;
+			if (pal_size > 256) break;
+			tmp_palette[pal_size - 1] = col;
+		}
+	}
+
+	StoreOglformat = (StoreFormat == CImageInfo::FORMAT_RGB) ? GL_RGB : GL_RGBA;
+	if(pal_size <= 4) StoreOglformat = GL_RGB4;
+	else if(pal_size <= 16) StoreOglformat = GL_RGB16;
+	else if(pal_size <= 256) StoreOglformat = GL_RGB256;
+
+	if(StoreOglformat != GL_RGBA && StoreOglformat != GL_RGB)
+	{
+		char* tmp_chr = (char*) tmp;
+		
+		for (int i = 0; i < Width * Height; i++)
+		{
+			u16 col = tmp[i];
+			int idx = FindColorInPalette(tmp_palette, pal_size, col);
+			
+			if(StoreOglformat == GL_RGB256) {
+				tmp_chr[i] = idx;
+			} else if(StoreOglformat == GL_RGB16) {
+				if((i & 1) == 0) {
+					tmp_chr[i >> 1] = idx;
+				} else {
+					tmp_chr[i >> 1] |= idx << 4;
+				}
+			} else {
+				if((i & 3) == 0) {
+					tmp_chr[i >> 2] = idx;
+				} else {
+					tmp_chr[i >> 2] |= idx << (2 * (i & 3));
+				}
+			}
+		}
+	}
 
 	glGenTextures(1, &m_aTextures[Tex].m_Tex);
 	glBindTexture(GL_TEXTURE_2D, m_aTextures[Tex].m_Tex);
 
-	if (!glTexImage2D(GL_TEXTURE_2D, 0, (GL_TEXTURE_TYPE_ENUM)StoreOglformat, Width, Height, 0, TEXGEN_TEXCOORD, pFinalData))
+	if (!glTexImage2D(GL_TEXTURE_2D, 0, (GL_TEXTURE_TYPE_ENUM)StoreOglformat, Width, Height, 0, 0, tmp))
 	{
-		printf("FAILED TEXIMAGE2D %d %d %s\n", Width, Height, pTmpData?"true":"false");
-		if (pFinalData) mem_free(pFinalData);
+		printf("FAILED TEXIMAGE2D %d %d %s\n", Width, Height, tmp?"true":"false");
+		mem_free(tmp);
+		mem_free(tmp_palette);
 		return m_InvalidTexture;
 	}
 
+	if (StoreOglformat != GL_RGBA && StoreOglformat != GL_RGB)
+	{
+		int glPalSize;
+		if(StoreOglformat == GL_RGB4) glPalSize = 4;
+		else if(StoreOglformat == GL_RGB16) glPalSize = 16;
+		else glPalSize = 256;
+
+		glColorTableEXT(0, 0, glPalSize, 0, 0, tmp_palette);
+	}
+	
+	glTexParameter(0, TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT);
+
 	// calculate memory usage
 	{
-		m_aTextures[Tex].m_MemSize = Width*Height*PixelSize;
+		m_aTextures[Tex].m_MemSize = Width*Height*2;
 	}
 
-	mem_free(pFinalData);
+	//mem_free(pFinalData);
+	mem_free(tmp);
+	mem_free(tmp_palette);
 	m_TextureMemoryUsage += m_aTextures[Tex].m_MemSize;
 	return Tex;
 }
@@ -478,7 +587,6 @@ void CGraphics_NDS::TextureSet(int TextureID)
 void CGraphics_NDS::Clear(float r, float g, float b)
 {
 	glClearColor(r*31, g*31, b*31, 31);
-	glClearDepth(0x7fff);
 }
 
 void CGraphics_NDS::QuadsBegin()
@@ -811,15 +919,19 @@ int CGraphics_NDS::Init()
 	//glClearPolyID(63);
 
 	glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE);
+	glClearDepth(0x7fff);
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, 256, 192, 0, -500, 500);
+	glOrtho(0, 256, 190, 0, -500, 500);
 
 	vramSetBankA(VRAM_A_TEXTURE);
 	vramSetBankB(VRAM_B_TEXTURE);
 	vramSetBankC(VRAM_C_TEXTURE);
 	vramSetBankD(VRAM_D_TEXTURE);
+	vramSetBankE(VRAM_E_TEX_PALETTE);
+	vramSetBankF(VRAM_F_TEX_PALETTE);
+	vramSetBankG(VRAM_G_TEX_PALETTE);
 
 	// create null texture, will get id=0
 	static const unsigned char aNullTextureData[] = {
