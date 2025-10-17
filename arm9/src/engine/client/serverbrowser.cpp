@@ -136,7 +136,7 @@ void CServerBrowser::Filter()
 	if(m_NumSortedServersCapacity < m_NumServers)
 	{
 		if(m_pSortedServerlist)
-			mem_free(m_pSortedServerlist);
+			_mem_free(m_pSortedServerlist);
 		m_NumSortedServersCapacity = m_NumServers;
 		m_pSortedServerlist = (int *)mem_alloc(m_NumSortedServersCapacity*sizeof(int), 1);
 	}
@@ -429,7 +429,7 @@ CServerBrowser::CServerEntry *CServerBrowser::Add(const NETADDR &Addr)
 		m_NumServerCapacity += 100;
 		ppNewlist = (CServerEntry **)mem_alloc(m_NumServerCapacity*sizeof(CServerEntry*), 1);
 		mem_copy(ppNewlist, m_ppServerlist, m_NumServers*sizeof(CServerEntry*));
-		mem_free(m_ppServerlist);
+		_mem_free(m_ppServerlist);
 		m_ppServerlist = ppNewlist;
 	}
 

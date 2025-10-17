@@ -700,7 +700,7 @@ int CDemoPlayer::Load(class IStorage *pStorage, class IConsole *pConsole, const 
 		io_close(MapFile);
 
 		// free data
-		mem_free(pMapData);
+		_mem_free(pMapData);
 	}
 
 	// store map inforation
@@ -861,7 +861,7 @@ int CDemoPlayer::Stop()
 	m_pConsole->Print(IConsole::OUTPUT_LEVEL_STANDARD, "demo_player", "Stopped playback");
 	io_close(m_File);
 	m_File = 0;
-	mem_free(m_pKeyFrames);
+	_mem_free(m_pKeyFrames);
 	m_pKeyFrames = 0;
 	str_copy(m_aFilename, "", sizeof(m_aFilename));
 	return 0;

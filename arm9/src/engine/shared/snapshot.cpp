@@ -391,7 +391,7 @@ void CSnapshotStorage::PurgeAll()
 	while(pHolder)
 	{
 		pNext = pHolder->m_pNext;
-		mem_free(pHolder);
+		_mem_free(pHolder);
 		pHolder = pNext;
 	}
 
@@ -410,7 +410,7 @@ void CSnapshotStorage::PurgeUntil(int Tick)
 		pNext = pHolder->m_pNext;
 		if(pHolder->m_Tick >= Tick)
 			return; // no more to remove
-		mem_free(pHolder);
+		_mem_free(pHolder);
 
 		// did we come to the end of the list?
 		if (!pNext)

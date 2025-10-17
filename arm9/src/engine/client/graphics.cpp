@@ -401,7 +401,7 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 		}
 	}
 
-	if (pTmpData) mem_free(pTmpData);
+	if (pTmpData) _mem_free(pTmpData);
 
 	// try to palettize
 	u16* tmp_palette = (u16*)mem_alloc(256*2, 1);
@@ -464,8 +464,8 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 	if (!glTexImage2D(GL_TEXTURE_2D, 0, (GL_TEXTURE_TYPE_ENUM)StoreOglformat, Width, Height, 0, 0, tmp))
 	{
 		printf("FAILED TEXIMAGE2D %d %d %s\n", Width, Height, tmp?"true":"false");
-		mem_free(tmp);
-		mem_free(tmp_palette);
+		_mem_free(tmp);
+		_mem_free(tmp_palette);
 		return m_InvalidTexture;
 	}
 
@@ -486,9 +486,9 @@ int CGraphics_NDS::LoadTextureRaw(int Width, int Height, int Format, const void 
 		m_aTextures[Tex].m_MemSize = Width*Height*2;
 	}
 
-	//mem_free(pFinalData);
-	mem_free(tmp);
-	mem_free(tmp_palette);
+	//_mem_free(pFinalData);
+	_mem_free(tmp);
+	_mem_free(tmp_palette);
 	m_TextureMemoryUsage += m_aTextures[Tex].m_MemSize;
 	return Tex;
 }
@@ -508,7 +508,7 @@ int CGraphics_NDS::LoadTexture(const char *pFilename, int StorageType, int Store
 			StoreFormat = Img.m_Format;
 
 		ID = LoadTextureRaw(Img.m_Width, Img.m_Height, Img.m_Format, Img.m_pData, StoreFormat, Flags);
-		mem_free(Img.m_pData);
+		_mem_free(Img.m_pData);
 		if(ID != m_InvalidTexture && g_Config.m_Debug)
 			dbg_msg("graphics/texture", "loaded %s", pFilename);
 		return ID;

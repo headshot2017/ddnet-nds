@@ -25,18 +25,6 @@
 
 //the speed of the timer when using ClockDivider_1024
 #define TIMER_SPEED (BUS_CLOCK/1024)
-
-typedef unsigned int socklen_t;
-struct addrinfo {
-               int              ai_flags;
-               int              ai_family;
-               int              ai_socktype;
-               int              ai_protocol;
-               socklen_t        ai_addrlen;
-               struct sockaddr *ai_addr;
-               char            *ai_canonname;
-               struct addrinfo *ai_next;
-           };
 #endif
 
 #if defined(CONF_FAMILY_UNIX) || defined(__NDS__)
@@ -365,7 +353,7 @@ void *mem_alloc_debug(const char *filename, int line, unsigned size, unsigned al
 	return malloc(size);
 }
 
-void mem_free(void *p)
+void _mem_free(void *p)
 {
 	if(p)
 	{
@@ -554,8 +542,10 @@ void *thread_init(void (*threadfunc)(void *), void *u)
 	return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadfunc, u, 0, NULL);
 #elif defined(__NDS__)
 	cothread_t* id = (cothread_t*)mem_alloc(sizeof(cothread_t), 1);
-	struct thread_data d = {threadfunc, u};
-	*id = cothread_create(thread_mainfunc, (void*)&d, 0, 0);
+	struct thread_data* d = (struct thread_data*)mem_alloc(sizeof(struct thread_data), 1);
+	d->threadfunc = threadfunc;
+	d->u = u;
+	*id = cothread_create(thread_mainfunc, (void*)d, 0, 0);
 	cothread_yield();
 	return (void*)id;
 #else
@@ -588,7 +578,7 @@ void thread_destroy(void *thread)
 	while (!cothread_has_joined(*id) || errno);
 	if (errno) errno = 0;
 	cothread_delete(*id);
-	mem_free(id);
+	_mem_free(id);
 #else
 	/*#error not implemented*/
 #endif
@@ -682,7 +672,7 @@ void lock_destroy(LOCK lock)
 #else
 	#error not implemented on this platform
 #endif
-	mem_free(lock);
+	_mem_free(lock);
 }
 
 int lock_trylock(LOCK lock)

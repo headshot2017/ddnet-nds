@@ -188,7 +188,7 @@ void CSound::RateConvert(int SampleID)
 	}
 
 	// free old data and apply new
-	mem_free(pSample->m_pData);
+	_mem_free(pSample->m_pData);
 	pSample->m_pData = pNewData;
 	pSample->m_NumFrames = NumFrames;
 	pSample->m_Rate = m_MixingRate;
@@ -257,7 +257,7 @@ int CSound::DecodeWV(int SampleID, const void *pData, unsigned DataSize)
 		for (i = 0; i < NumSamples*NumChannels; i++)
 			*pDst++ = (short)*pSrc++;
 
-		mem_free(pBuffer);
+		_mem_free(pBuffer);
 
 		pSample->m_NumFrames = NumSamples;
 		pSample->m_LoopStart = -1;
@@ -365,7 +365,7 @@ void CSound::UnloadSample(int SampleID)
 		return;
 
 	Stop(SampleID);
-	mem_free(m_aSamples[SampleID].m_pData);
+	_mem_free(m_aSamples[SampleID].m_pData);
 
 	m_aSamples[SampleID].m_pData = 0x0;
 }

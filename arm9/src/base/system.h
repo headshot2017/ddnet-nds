@@ -107,7 +107,7 @@ void *mem_alloc_debug(const char *filename, int line, unsigned size, unsigned al
 	See Also:
 		<mem_alloc>
 */
-void mem_free(void *block);
+void _mem_free(void *block);
 
 /*
 	Function: mem_copy

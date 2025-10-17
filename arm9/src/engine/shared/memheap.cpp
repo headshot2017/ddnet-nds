@@ -68,7 +68,7 @@ void CHeap::Clear()
 	while(pChunk)
 	{
 		pNext = pChunk->m_pNext;
-		mem_free(pChunk);
+		_mem_free(pChunk);
 		pChunk = pNext;
 	}
 

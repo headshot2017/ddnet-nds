@@ -44,7 +44,7 @@ void CFlow::Init()
 {
 	if(m_pCells)
 	{
-		mem_free(m_pCells);
+		_mem_free(m_pCells);
 		m_pCells = 0;
 	}
 

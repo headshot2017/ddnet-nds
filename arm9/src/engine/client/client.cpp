@@ -3286,7 +3286,7 @@ int main(int argc, const char **argv)
 	pClient->Engine()->InitLogfile();
 
 	dbg_msg("wifi", "connecting DS to WiFi network");
-	if(!Wifi_InitDefault(WFC_CONNECT)) {
+	if(!Wifi_InitDefault(WFC_CONNECT | WIFI_ATTEMPT_DSI_MODE)) {
 		dbg_msg("wifi", "connection failed. please check your WFC settings by using a retail DS game, or the DSi wifi settings");
 		while (1) swiWaitForVBlank();
 	} else {

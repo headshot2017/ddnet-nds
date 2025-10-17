@@ -153,7 +153,7 @@ bool CDataFileReader::Open(class IStorage *pStorage, const char *pFilename, int 
 	if(ReadSize != Size)
 	{
 		io_close(pTmpDataFile->m_File);
-		mem_free(pTmpDataFile);
+		_mem_free(pTmpDataFile);
 		pTmpDataFile = 0;
 		dbg_msg("datafile", "couldn't load the whole thing, wanted=%d got=%d", Size, ReadSize);
 		return false;
@@ -314,7 +314,7 @@ void *CDataFileReader::GetDataImpl(int Index, int Swap)
 #endif
 
 			// clean up the temporary buffers
-			mem_free(pTemp);
+			_mem_free(pTemp);
 		}
 		else
 		{
@@ -350,7 +350,7 @@ void CDataFileReader::UnloadData(int Index)
 		return;
 
 	//
-	mem_free(m_pDataFile->m_ppDataPtrs[Index]);
+	_mem_free(m_pDataFile->m_ppDataPtrs[Index]);
 	m_pDataFile->m_ppDataPtrs[Index] = 0x0;
 }
 
@@ -423,10 +423,10 @@ bool CDataFileReader::Close()
 	// free the data that is loaded
 	int i;
 	for(i = 0; i < m_pDataFile->m_Header.m_NumRawData; i++)
-		mem_free(m_pDataFile->m_ppDataPtrs[i]);
+		_mem_free(m_pDataFile->m_ppDataPtrs[i]);
 
 	io_close(m_pDataFile->m_File);
-	mem_free(m_pDataFile);
+	_mem_free(m_pDataFile);
 	m_pDataFile = 0;
 	return true;
 }
@@ -448,11 +448,11 @@ CDataFileWriter::CDataFileWriter()
 
 CDataFileWriter::~CDataFileWriter()
 {
-	mem_free(m_pItemTypes);
+	_mem_free(m_pItemTypes);
 	m_pItemTypes = 0;
-	mem_free(m_pItems);
+	_mem_free(m_pItems);
 	m_pItems = 0;
-	mem_free(m_pDatas);
+	_mem_free(m_pDatas);
 	m_pDatas = 0;
 }
 
@@ -537,7 +537,7 @@ int CDataFileWriter::AddData(int Size, void *pData)
 	pInfo->m_CompressedSize = (int)s;
 	pInfo->m_pCompressedData = mem_alloc(pInfo->m_CompressedSize, 1);
 	mem_copy(pInfo->m_pCompressedData, pCompData, pInfo->m_CompressedSize);
-	mem_free(pCompData);
+	_mem_free(pCompData);
 
 	m_NumDatas++;
 	return m_NumDatas-1;
@@ -552,7 +552,7 @@ int CDataFileWriter::AddDataSwapped(int Size, void *pData)
 	mem_copy(pSwapped, pData, Size);
 	swap_endian(pSwapped, sizeof(int), Size/sizeof(int));
 	int Index = AddData(Size, pSwapped);
-	mem_free(pSwapped);
+	_mem_free(pSwapped);
 	return Index;
 #else
 	return AddData(Size, pData);
@@ -728,9 +728,9 @@ int CDataFileWriter::Finish()
 
 	// free data
 	for(int i = 0; i < m_NumItems; i++)
-		mem_free(m_pItems[i].m_pData);
+		_mem_free(m_pItems[i].m_pData);
 	for(int i = 0; i < m_NumDatas; ++i)
-		mem_free(m_pDatas[i].m_pCompressedData);
+		_mem_free(m_pDatas[i].m_pCompressedData);
 
 	io_close(m_File);
 	m_File = 0;
